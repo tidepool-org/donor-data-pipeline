@@ -1,0 +1,10 @@
+# Environments
+.env
+# Jupyter Notebook
+.ipynb_checkpoints
+# General
+.DS_Store
+data
+export
+# Python
+__pycache__
