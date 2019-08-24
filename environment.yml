@@ -1,0 +1,21 @@
+name: donar-data-pipeline
+dependencies:
+- python=3
+- cython
+- pandas
+- requests
+- pylint
+- spyder
+- openpyxl
+- xlrd
+- xlsxwriter
+- matplotlib
+- scikit-learn
+- plotly
+- pip
+- pytest
+- pytest-cov
+- Sphinx
+
+- pip:
+  - python-dotenv
