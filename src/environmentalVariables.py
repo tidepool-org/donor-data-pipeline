@@ -39,6 +39,12 @@ def get_environmental_variables(donorGroup):
     Raises:
         KeyError if the variables are not found in the local environment
 
+    Called From:
+        get-donor-data/accept_new_donors_and_get_donor_list.py
+
+    Calls To:
+        None
+
     **This function only works if a local .env file is loaded into python**
 
     This function is used by the following scripts:
