@@ -60,7 +60,25 @@ args = parser.parse_args()
 
 # %% FUNCTIONS
 def make_folder_if_doesnt_exist(folder_paths):
-    ''' function requires a single path or a list of paths'''
+    """
+    Makes folder directories from any folder path string or list of folder path
+    strings.
+
+    Args:
+        folder_paths (str) or (list): The folder paths to be made
+
+    Returns:
+        None
+
+    Called From:
+        accept_and_get_list
+
+    Calls To:
+        None
+
+    Helper function for accept_and_get_list.
+
+    """
     if not isinstance(folder_paths, list):
         folder_paths = [folder_paths]
     for folder_path in folder_paths:
@@ -70,6 +88,23 @@ def make_folder_if_doesnt_exist(folder_paths):
 
 
 def login_api(auth):
+    """
+    Calls API to log into a Tidepool account
+
+    Args:
+        auth (tuple): An ('email', 'password') string tuple of a donor group
+
+    Returns:
+        headers (dict): Contains a session token and application content type
+        userid (str): The userid of the main Tidepool account
+
+    Called From:
+        accept_new_donors_and_get_donor_list
+
+    Calls To:
+        None
+
+    """
     api_call = "https://api.tidepool.org/auth/login"
     api_response = requests.post(api_call, auth=auth)
     if(api_response.ok):
@@ -89,6 +124,22 @@ def login_api(auth):
 
 
 def logout_api(auth):
+    """
+    Calls API to log out of a Tidepool account
+
+    Args:
+        auth (tuple): An ('email', 'password') string tuple of a donor group
+
+    Returns:
+        None
+
+    Called From:
+        accept_new_donors_and_get_donor_list
+
+    Calls To:
+        None
+
+    """
     api_call = "https://api.tidepool.org/auth/logout"
     api_response = requests.post(api_call, auth=auth)
 
@@ -105,6 +156,23 @@ def logout_api(auth):
 
 
 def accept_invite_api(headers, userid):
+    """
+    Loops through all pending data-share invites and accepts them
+
+    Args:
+        headers (dict): Contains a session token and application content type
+        userid (str): The userid of the main Tidepool account
+
+    Returns:
+        nAccepted (int): Number of donor invites successfully accepted
+
+    Called From:
+        accept_new_donors_and_get_donor_list
+
+    Calls To:
+        None
+
+    """
     print("accepting new donors ...")
     nAccepted = 0
     api_call = "https://api.tidepool.org/confirm/invitations/" + userid
@@ -150,6 +218,24 @@ def accept_invite_api(headers, userid):
 
 
 def get_donor_list_api(headers, userid):
+    """
+    Loops through all pending data-share invites and accepts them
+
+    Args:
+        headers (dict): Contains a session token and application content type
+        userid (str): The userid of the main Tidepool account
+
+    Returns:
+        df (DataFrame): A single column DataFrame containing each "userID"
+            found in the account.
+
+    Called From:
+        accept_new_donors_and_get_donor_list
+
+    Calls To:
+        None
+
+    """
     print("getting donor list ...")
     api_call = "https://api.tidepool.org/access/groups/" + userid
     api_response = requests.get(api_call, headers=headers)
@@ -166,6 +252,31 @@ def get_donor_list_api(headers, userid):
 
 
 def accept_new_donors_and_get_donor_list(auth):
+    """
+    Accept new donors in a donor group and gets a list of their userIDs
+
+    This function is a wrapper which calls other functions to log into a
+    donor group account, accept pending data-share invitations, get the list of
+    all donor userIDs within that account, and then logout.
+
+    Args:
+        auth (tuple): An ('email', 'password') string tuple of a donor group
+
+    Returns:
+        nAccepted (int): The number of accepted data-share invitations
+        df (DataFrame): A single column DataFrame containing each "userID"
+            found in the account.
+
+    Called From:
+        accept_and_get_list
+
+    Calls To:
+        login_api
+        accept_invite_api
+        get_donor_list_api
+        logout_api
+
+    """
     # login
     headers, userid = login_api(auth)
     # accept invitations to the master donor account
@@ -180,6 +291,45 @@ def accept_new_donors_and_get_donor_list(auth):
 
 # %% START OF CODE
 def accept_and_get_list(args):
+    """
+    Accepts all pending data share invitations and gets a unique donor list
+
+    When a Tidepool user opts into donating their data, a data share-invite
+    is sent to the big data Tidepool account (a special type of clinician
+    account). In addition, Tidepool data donors get to choose an organization
+    to support (e.g. JDRF, BT1, etc). Each organization donor group is tracked
+    using the same data-share invite mechanism. These invitation requests
+    need to be accepted before the data becomes available to download.
+
+    This is the main function which loops through each donor group account,
+    accepts the pending invitations, removes duplicate and QA test accounts,
+    and then saves the unique donor list to a file.
+
+    Args:
+        args (argparse.Namespace): A namespace of arguments parsed by the
+            argparse package.
+
+            This namespace includes the following:
+                data_path (str): A path to the main 'data' storage folder
+                date_stamp (str): A YYYY-MM-DD formatted datestamp
+                save_donor_list (bool): A True/False for saving the donor list
+
+    Returns:
+        final_donor_list (DataFrame): A 2 column DataFrame containing every
+            unique "userID" and the "donorGroup" account they can be found in.
+
+    Called From:
+        __main__
+
+    Calls To:
+        make_folder_if_doesnt_exist
+        environmentalVariables.get_environmental_variables
+        accept_new_donors_and_get_donor_list
+
+    If save_donor_list == True, the final_donor_list is saved to a csv, and it
+    is also returned within memory.
+
+    """
     # create output folders
     date_stamp = args.date_stamp  # dt.datetime.now().strftime("%Y-%m-%d")
     phi_date_stamp = "PHI-" + date_stamp
