@@ -1,7 +1,7 @@
 """
 Module simple_test
 ================
-This Moduel is used to test the documentation.
+This Module is used to test the documentation.
 """
 import math
 
