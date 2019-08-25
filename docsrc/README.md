@@ -2,7 +2,7 @@ sphinx
 ======
 
 ## Building the docs
-1. Complete the `Project Setup` from the Readme.mb that is located at the root of the donor-docs-pipeline project. 
+1. Complete the `Project Setup` from the Readme.md that is located at the root of the donor-docs-pipeline project. 
 
 2. To build the content
     - Remove existing files : from within the donor-docs-pipeline/docsrc directory run `make clean`. The donor-docs-pipeline/docs
