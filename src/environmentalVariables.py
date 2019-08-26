@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+"""Load environment variables
 """
-description: load environment variables
-version: 0.0.1
-created: 2018-02-21
-author: Ed Nykaza
-modified: 2019-08-15 (Jason Meno)
-dependencies:
-    * .env file in same folder as this script (Tidepool see bigdata 1PWD)
-license: BSD-2-Clause
-"""
+
+# Version: 0.0.1
+# Created: 2018-02-21
+# Authors: Ed Nykaza
+#          Jason Meno
+# Last Modified: 2019-08-15 (JM)
+# dependencies:
+#    * .env file in same folder as this script (Tidepool see bigdata 1PWD)
+# License: BSD-2-Clause
 
 # %% load in required libraries
 import os
@@ -25,32 +26,35 @@ if isfile(dotenv_path):
 
 # %% define functions
 def get_environmental_variables(donorGroup):
-    """
-    Retrieves an email and password of a Tidepool bigdata donor group account
-    from the local environment.
+    r"""Retrieves an email and password of a Tidepool bigdata donor group
+    account from the local environment.
 
-    Args:
-        donorGroup (str): The name of the donor group
+    Parameters
+    ----------
+    donorGroup : str
+        The name of the donor group
 
-    Returns:
-        emailAddress (str): The email address of the donor group account
-        pswd (str): The password of the Tidepool donor group account
+    Returns
+    -------
+    emailAddress : str
+        The email address of the donor group account
+    pswd : str
+        The password of the Tidepool donor group account
 
-    Raises:
-        KeyError if the variables are not found in the local environment
+    Raises
+    ------
+        KeyError
+            If the variables are not found in the local environment
 
+    Notes
+    -----
     Called From:
-        get-donor-data/accept_new_donors_and_get_donor_list.py
+        - get-donor-data/accept-new-donors-and-get-donor-list.py
+        - get-donor-data/get_single_donor_metadata.py
+        - get-donor-data/get_single_tidepool_dataset.py
 
     Calls To:
         None
-
-    **This function only works if a local .env file is loaded into python**
-
-    This function is used by the following scripts:
-        get-donor-data/accept-new-donors-and-get-donor-list.py
-        get-donor-data/get_single_donor_metadata.py
-        get-donor-data/get_single_tidepool_dataset.py
 
     """
     try:
