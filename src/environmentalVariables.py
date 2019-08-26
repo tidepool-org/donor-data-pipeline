@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""Load environment variables
 """
+Load Environment Variables
+============================
+:File: environmentalVariables.py
+:Description: Loads environmental variables from local .env into python memory
+:Version: 0.0.1
+:Created: 2018-02-21
+:Authors: Ed Nykaza (EN), Jason Meno (JM)
+:Last Modified: 2019-08-15 (JM)
+:Dependencies:
+    - .env file in same folder as this script (Tidepool see bigdata 1PWD)
+:License: BSD-2-Clause
 
-# Version: 0.0.1
-# Created: 2018-02-21
-# Authors: Ed Nykaza
-#          Jason Meno
-# Last Modified: 2019-08-15 (JM)
-# dependencies:
-#    * .env file in same folder as this script (Tidepool see bigdata 1PWD)
-# License: BSD-2-Clause
+"""
 
 # %% load in required libraries
 import os
