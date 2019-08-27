@@ -1,0 +1,420 @@
+
+<!DOCTYPE html>
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta charset="utf-8" />
+    <title>Accept New Donors &amp; Get Donor List &#8212; Donor Data Project v0.1 documentation</title>
+    <link rel="stylesheet" href="_static/readable.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="_static/language_data.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Welcome to Donor Data Pipeline Documentation!" href="index.html" />
+   
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+  </head><body>
+  
+  
+
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to Donor Data Pipeline Documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">Donor Data Project v0.1 documentation</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <span class="target" id="module-accept_new_donors_and_get_donor_list"></span><div class="section" id="accept-new-donors-get-donor-list">
+<h1>Accept New Donors &amp; Get Donor List<a class="headerlink" href="#accept-new-donors-get-donor-list" title="Permalink to this headline">¶</a></h1>
+<dl class="field-list simple">
+<dt class="field-odd">File</dt>
+<dd class="field-odd"><p>accept-new-donors-and-get-donor-list.py</p>
+</dd>
+<dt class="field-even">Description</dt>
+<dd class="field-even"><p>Accepts all pending data share invitations and gets a unique
+donor list</p>
+</dd>
+<dt class="field-odd">Version</dt>
+<dd class="field-odd"><p>0.0.1</p>
+</dd>
+<dt class="field-even">Created</dt>
+<dd class="field-even"><p>2019-05-26</p>
+</dd>
+<dt class="field-odd">Authors</dt>
+<dd class="field-odd"><p>Ed Nykaza (etn), Jason Meno (jam)</p>
+</dd>
+<dt class="field-even">Last Modified</dt>
+<dd class="field-even"><p>2019-08-26 (jam)</p>
+</dd>
+<dt class="field-odd">Dependencies</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p>.env</p></li>
+<li><p>environmentalVariables.py</p></li>
+</ul>
+</dd>
+<dt class="field-even">License</dt>
+<dd class="field-even"><p>BSD-2-Clause</p>
+</dd>
+</dl>
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.parse_arguments">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">parse_arguments</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.parse_arguments" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses command line arguments</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>None</strong></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>args</strong><span class="classifier">argparse.Namespace</span></dt><dd></dd>
+<dt>A namespace of arguments parsed by the argparse package.</dt><dd></dd>
+<dt>This namespace includes the following:</dt><dd><dl class="simple">
+<dt><strong>data_path</strong><span class="classifier">str</span></dt><dd><p>A path to the main ‘data’ storage folder</p>
+</dd>
+<dt><strong>date_stamp</strong><span class="classifier">str</span></dt><dd><p>A YYYY-MM-DD formatted datestamp</p>
+</dd>
+<dt><strong>save_donor_list</strong><span class="classifier">bool</span></dt><dd><p>A True/False for saving the donor list</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>main</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.make_folder_if_doesnt_exist">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">make_folder_if_doesnt_exist</code><span class="sig-paren">(</span><em class="sig-param">folder_paths</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.make_folder_if_doesnt_exist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Makes folder directories from any folder path string or list of folder
+path strings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>folder_paths</strong><span class="classifier">str or list</span></dt><dd><p>The folder paths to be made</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_and_get_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.login_api">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">login_api</code><span class="sig-paren">(</span><em class="sig-param">auth</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.login_api" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls API to log into a Tidepool account</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>auth</strong><span class="classifier">tuple</span></dt><dd><p>An (‘email’, ‘password’) string tuple of a donor group</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>headers</strong><span class="classifier">dict</span></dt><dd><p>Contains a session token and application content type</p>
+</dd>
+<dt><strong>userid</strong><span class="classifier">str</span></dt><dd><p>The userid of the main Tidepool account</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_new_donors_and_get_donor_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.logout_api">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">logout_api</code><span class="sig-paren">(</span><em class="sig-param">auth</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.logout_api" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls API to log out of a Tidepool account</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>auth</strong><span class="classifier">tuple</span></dt><dd><p>An (‘email’, ‘password’) string tuple of a donor group</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt>None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_new_donors_and_get_donor_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.accept_invite_api">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">accept_invite_api</code><span class="sig-paren">(</span><em class="sig-param">headers</em>, <em class="sig-param">userid</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.accept_invite_api" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loops through all pending data-share invites and accepts them</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>headers</strong><span class="classifier">dict</span></dt><dd><p>Contains a session token and application content type</p>
+</dd>
+<dt><strong>userid</strong><span class="classifier">str</span></dt><dd><p>The userid of the main Tidepool account</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>nAccepted</strong><span class="classifier">int</span></dt><dd><p>Number of donor invites successfully accepted</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_new_donors_and_get_donor_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.get_donor_list_api">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">get_donor_list_api</code><span class="sig-paren">(</span><em class="sig-param">headers</em>, <em class="sig-param">userid</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.get_donor_list_api" title="Permalink to this definition">¶</a></dt>
+<dd><p>Loops through all pending data-share invites and accepts them</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>headers</strong><span class="classifier">dict</span></dt><dd><p>Contains a session token and application content type</p>
+</dd>
+<dt><strong>userid</strong><span class="classifier">str</span></dt><dd><p>The userid of the main Tidepool account</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>df</strong><span class="classifier">pandas.DataFrame</span></dt><dd><p>A single column DataFrame containing each userID found in the account</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_new_donors_and_get_donor_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.accept_new_donors_and_get_donor_list">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">accept_new_donors_and_get_donor_list</code><span class="sig-paren">(</span><em class="sig-param">auth</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.accept_new_donors_and_get_donor_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accept new donors in a donor group and gets a list of their userIDs</p>
+<p>This function is a wrapper which calls other functions to log into a
+donor group account, accept pending data-share invitations, get the list of
+all donor userIDs within that account, and then logout.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>auth</strong><span class="classifier">tuple</span></dt><dd><p>An (‘email’, ‘password’) string tuple of a donor group</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>nAccepted</strong><span class="classifier">int</span></dt><dd><p>The number of accepted data-share invitations</p>
+</dd>
+<dt><strong>df</strong><span class="classifier">pandas.DataFrame</span></dt><dd><p>A single column DataFrame containing each userID found in the account</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>accept_and_get_list</p></li>
+</ul>
+</dd>
+<dt>Calls To:</dt><dd><ul class="simple">
+<li><p>login_api</p></li>
+<li><p>accept_invite_api</p></li>
+<li><p>get_donor_list_api</p></li>
+<li><p>logout_api</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.accept_and_get_list">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">accept_and_get_list</code><span class="sig-paren">(</span><em class="sig-param">args</em><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.accept_and_get_list" title="Permalink to this definition">¶</a></dt>
+<dd><p>Accepts all pending data share invitations and gets a unique donor list</p>
+<p>When a Tidepool user opts into donating their data, a data share-invite
+is sent to the big data Tidepool account (a special type of clinician
+account). In addition, Tidepool data donors get to choose an organization
+to support (e.g. JDRF, BT1, etc). Each organization donor group is tracked
+using the same data-share invite mechanism. These invitation requests
+need to be accepted before the data becomes available to download.</p>
+<p>This is the main function which loops through each donor group account,
+accepts the pending invitations, removes duplicate and QA test accounts,
+and then saves the unique donor list to a file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl>
+<dt><strong>args</strong><span class="classifier">argparse.Namespace</span></dt><dd><p>A namespace of arguments parsed by the argparse package.</p>
+<dl class="simple">
+<dt>This namespace includes the following:</dt><dd><dl class="simple">
+<dt><strong>data_path</strong><span class="classifier">str</span></dt><dd><p>A path to the main ‘data’ storage folder</p>
+</dd>
+<dt><strong>date_stamp</strong><span class="classifier">str</span></dt><dd><p>A YYYY-MM-DD formatted datestamp</p>
+</dd>
+<dt><strong>save_donor_list</strong><span class="classifier">bool</span></dt><dd><p>A True/False for saving the donor list</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>final_donor_list</strong><span class="classifier">pandas.DataFrame</span></dt><dd><p>A 2 column DataFrame containing every unique userID and the donorGroup
+account they can be found in.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>main</p></li>
+</ul>
+</dd>
+<dt>Calls To:</dt><dd><ul class="simple">
+<li><p>make_folder_if_doesnt_exist</p></li>
+<li><p>environmentalVariables.get_environmental_variables</p></li>
+<li><p>accept_new_donors_and_get_donor_list</p></li>
+</ul>
+</dd>
+</dl>
+<p>If save_donor_list == True, the final_donor_list is saved to a csv, and it
+is also returned within memory.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="accept_new_donors_and_get_donor_list.main">
+<code class="sig-prename descclassname">accept_new_donors_and_get_donor_list.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#accept_new_donors_and_get_donor_list.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main function for accept_new_donors_and_get_donor_list.py</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>None</strong></dt><dd></dd>
+</dl>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>final_donor_list</strong><span class="classifier">pandas.DataFrame</span></dt><dd><p>A 2 column DataFrame containing every unique userID and the donorGroup
+account they can be found in.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<dl class="simple">
+<dt>Called From:</dt><dd><ul class="simple">
+<li><p>__main__</p></li>
+</ul>
+</dd>
+<dt>Calls To:</dt><dd><ul class="simple">
+<li><p>parse_arguments</p></li>
+<li><p>accept_and_get_list</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation index</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to Donor Data Pipeline Documentation!</a></li>
+  </ul></li>
+</ul>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/accept_new_donors_and_get_donor_list.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+  <div class="footer">
+    &copy; Copyright 2019 Tidepool.
+    Created using <a href="http://sphinx-doc.org/">Sphinx</a> 2.1.2.
+  </div>
+  
+  </body>
+</html>
