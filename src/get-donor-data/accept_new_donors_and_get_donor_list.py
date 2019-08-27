@@ -1,12 +1,21 @@
 # -*- coding: utf-8 -*-
-"""accept-new-donors-and-get-donor-list.py
-In the context of the big data donation
-project, this code accepts new donors and returns a list of donors.
-
-This code could also be modified rather easily to accept
-new share invitations and return a list of userids that
-are associated with the main account.
 """
+Accept New Donors & Get Donor List
+==================================
+:File: accept-new-donors-and-get-donor-list.py
+:Description: Accepts all pending data share invitations and gets a unique
+    donor list
+:Version: 0.0.1
+:Created: 2019-05-26
+:Authors: Ed Nykaza (etn), Jason Meno (jam)
+:Last Modified: 2019-08-26 (jam)
+:Dependencies:
+    - .env
+    - environmentalVariables.py
+:License: BSD-2-Clause
+
+"""
+
 
 # %% REQUIRED LIBRARIES
 import pandas as pd
@@ -22,61 +31,88 @@ if envPath not in sys.path:
 import environmentalVariables
 
 
-# %% USER INPUTS (choices to be made in order to run the code)
-codeDescription = "accepts new donors (shares) and return a list of userids"
-parser = argparse.ArgumentParser(description=codeDescription)
-
-parser.add_argument(
-    "-d",
-    "--date-stamp",
-    dest="date_stamp",
-    default=dt.datetime.now().strftime("%Y-%m-%d"),
-    help="date, in '%Y-%m-%d' format, of the date when " +
-    "donors were accepted"
-)
-
-parser.add_argument(
-    "-o",
-    "--output-data-path",
-    dest="data_path",
-    default=os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__), "..", "data"
-        )
-    ),
-    help="the output path where the data is stored"
-)
-
-parser.add_argument(
-    "-s",
-    "--save-donor-list",
-    dest="save_donor_list",
-    default=True,
-    help="specify if you want to save the donor list (True/False)"
-)
-
-args = parser.parse_args()
-
-
 # %% FUNCTIONS
-def make_folder_if_doesnt_exist(folder_paths):
-    """
-    Makes folder directories from any folder path string or list of folder path
-    strings.
+def parse_arguments():
+    r"""Parses command line arguments
 
-    Args:
-        folder_paths (str) or (list): The folder paths to be made
+    Parameters
+    ----------
+    None
 
-    Returns:
-        None
+    Returns
+    -------
+    args : argparse.Namespace
+    A namespace of arguments parsed by the argparse package.
 
+    This namespace includes the following:
+        **data_path** : str
+            A path to the main 'data' storage folder
+        **date_stamp** : str
+            A YYYY-MM-DD formatted datestamp
+        **save_donor_list** : bool
+            A True/False for saving the donor list
+
+    Notes
+    -----
     Called From:
-        accept_and_get_list
+        - main
 
-    Calls To:
-        None
+    """
+    # USER INPUTS (choices to be made in order to run the code)
+    codeDescription = "accepts new donors (shares) and return a list of\
+        userids"
+    parser = argparse.ArgumentParser(description=codeDescription)
 
-    Helper function for accept_and_get_list.
+    parser.add_argument(
+        "-d",
+        "--date-stamp",
+        dest="date_stamp",
+        default=dt.datetime.now().strftime("%Y-%m-%d"),
+        help="date, in '%Y-%m-%d' format, of the date when " +
+        "donors were accepted"
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output-data-path",
+        dest="data_path",
+        default=os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__), "..", "data"
+            )
+        ),
+        help="the output path where the data is stored"
+    )
+
+    parser.add_argument(
+        "-s",
+        "--save-donor-list",
+        dest="save_donor_list",
+        default=True,
+        help="specify if you want to save the donor list (True/False)"
+    )
+
+    args = parser.parse_args()
+    return args
+
+
+def make_folder_if_doesnt_exist(folder_paths):
+    r"""Makes folder directories from any folder path string or list of folder
+    path strings.
+
+    Parameters
+    ----------
+        folder_paths : str or list
+            The folder paths to be made
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Called From:
+        - accept_and_get_list
 
     """
     if not isinstance(folder_paths, list):
@@ -88,21 +124,24 @@ def make_folder_if_doesnt_exist(folder_paths):
 
 
 def login_api(auth):
-    """
-    Calls API to log into a Tidepool account
+    r"""Calls API to log into a Tidepool account
 
-    Args:
-        auth (tuple): An ('email', 'password') string tuple of a donor group
+    Parameters
+    ----------
+    auth : tuple
+        An ('email', 'password') string tuple of a donor group
 
-    Returns:
-        headers (dict): Contains a session token and application content type
-        userid (str): The userid of the main Tidepool account
+    Returns
+    -------
+    headers : dict
+        Contains a session token and application content type
+    userid : str
+        The userid of the main Tidepool account
 
+    Notes
+    -----
     Called From:
-        accept_new_donors_and_get_donor_list
-
-    Calls To:
-        None
+        - accept_new_donors_and_get_donor_list
 
     """
     api_call = "https://api.tidepool.org/auth/login"
@@ -124,20 +163,21 @@ def login_api(auth):
 
 
 def logout_api(auth):
-    """
-    Calls API to log out of a Tidepool account
+    r"""Calls API to log out of a Tidepool account
 
-    Args:
-        auth (tuple): An ('email', 'password') string tuple of a donor group
+    Parameters
+    ----------
+    auth : tuple
+          An ('email', 'password') string tuple of a donor group
 
-    Returns:
-        None
+    Returns
+    -------
+    None
 
+    Notes
+    -----
     Called From:
-        accept_new_donors_and_get_donor_list
-
-    Calls To:
-        None
+        - accept_new_donors_and_get_donor_list
 
     """
     api_call = "https://api.tidepool.org/auth/logout"
@@ -156,21 +196,24 @@ def logout_api(auth):
 
 
 def accept_invite_api(headers, userid):
-    """
-    Loops through all pending data-share invites and accepts them
+    r"""Loops through all pending data-share invites and accepts them
 
-    Args:
-        headers (dict): Contains a session token and application content type
-        userid (str): The userid of the main Tidepool account
+    Parameters
+    ----------
+    headers : dict
+        Contains a session token and application content type
+    userid : str
+        The userid of the main Tidepool account
 
-    Returns:
-        nAccepted (int): Number of donor invites successfully accepted
+    Returns
+    -------
+    nAccepted : int
+        Number of donor invites successfully accepted
 
+    Notes
+    -----
     Called From:
-        accept_new_donors_and_get_donor_list
-
-    Calls To:
-        None
+        - accept_new_donors_and_get_donor_list
 
     """
     print("accepting new donors ...")
@@ -218,22 +261,24 @@ def accept_invite_api(headers, userid):
 
 
 def get_donor_list_api(headers, userid):
-    """
-    Loops through all pending data-share invites and accepts them
+    r"""Loops through all pending data-share invites and accepts them
 
-    Args:
-        headers (dict): Contains a session token and application content type
-        userid (str): The userid of the main Tidepool account
+    Parameters
+    ----------
+    headers : dict
+        Contains a session token and application content type
+    userid : str
+        The userid of the main Tidepool account
 
-    Returns:
-        df (DataFrame): A single column DataFrame containing each "userID"
-            found in the account.
+    Returns
+    -------
+    df : pandas.DataFrame
+        A single column DataFrame containing each userID found in the account
 
+    Notes
+    -----
     Called From:
-        accept_new_donors_and_get_donor_list
-
-    Calls To:
-        None
+        - accept_new_donors_and_get_donor_list
 
     """
     print("getting donor list ...")
@@ -252,29 +297,34 @@ def get_donor_list_api(headers, userid):
 
 
 def accept_new_donors_and_get_donor_list(auth):
-    """
-    Accept new donors in a donor group and gets a list of their userIDs
+    r"""Accept new donors in a donor group and gets a list of their userIDs
 
     This function is a wrapper which calls other functions to log into a
     donor group account, accept pending data-share invitations, get the list of
     all donor userIDs within that account, and then logout.
 
-    Args:
-        auth (tuple): An ('email', 'password') string tuple of a donor group
+    Parameters
+    ----------
+    auth : tuple
+        An ('email', 'password') string tuple of a donor group
 
-    Returns:
-        nAccepted (int): The number of accepted data-share invitations
-        df (DataFrame): A single column DataFrame containing each "userID"
-            found in the account.
+    Returns
+    -------
+    nAccepted : int
+        The number of accepted data-share invitations
+    df : pandas.DataFrame
+        A single column DataFrame containing each userID found in the account
 
+    Notes
+    -----
     Called From:
-        accept_and_get_list
+        - accept_and_get_list
 
     Calls To:
-        login_api
-        accept_invite_api
-        get_donor_list_api
-        logout_api
+        - login_api
+        - accept_invite_api
+        - get_donor_list_api
+        - logout_api
 
     """
     # login
@@ -291,8 +341,7 @@ def accept_new_donors_and_get_donor_list(auth):
 
 # %% START OF CODE
 def accept_and_get_list(args):
-    """
-    Accepts all pending data share invitations and gets a unique donor list
+    r"""Accepts all pending data share invitations and gets a unique donor list
 
     When a Tidepool user opts into donating their data, a data share-invite
     is sent to the big data Tidepool account (a special type of clinician
@@ -305,26 +354,34 @@ def accept_and_get_list(args):
     accepts the pending invitations, removes duplicate and QA test accounts,
     and then saves the unique donor list to a file.
 
-    Args:
-        args (argparse.Namespace): A namespace of arguments parsed by the
-            argparse package.
+    Parameters
+    ----------
+    args : argparse.Namespace
+        A namespace of arguments parsed by the argparse package.
 
-            This namespace includes the following:
-                data_path (str): A path to the main 'data' storage folder
-                date_stamp (str): A YYYY-MM-DD formatted datestamp
-                save_donor_list (bool): A True/False for saving the donor list
+        This namespace includes the following:
+            **data_path** : str
+                A path to the main 'data' storage folder
+            **date_stamp** : str
+                A YYYY-MM-DD formatted datestamp
+            **save_donor_list** : bool
+                A True/False for saving the donor list
 
-    Returns:
-        final_donor_list (DataFrame): A 2 column DataFrame containing every
-            unique "userID" and the "donorGroup" account they can be found in.
+    Returns
+    -------
+    final_donor_list : pandas.DataFrame
+        A 2 column DataFrame containing every unique userID and the donorGroup
+        account they can be found in.
 
+    Notes
+    -----
     Called From:
-        __main__
+        - main
 
     Calls To:
-        make_folder_if_doesnt_exist
-        environmentalVariables.get_environmental_variables
-        accept_new_donors_and_get_donor_list
+        - make_folder_if_doesnt_exist
+        - environmentalVariables.get_environmental_variables
+        - accept_new_donors_and_get_donor_list
 
     If save_donor_list == True, the final_donor_list is saved to a csv, and it
     is also returned within memory.
@@ -413,5 +470,35 @@ def accept_and_get_list(args):
     return final_donor_list
 
 
-if __name__ == "__main__":
+def main():
+    r"""Main function for accept_new_donors_and_get_donor_list.py
+
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+    final_donor_list : pandas.DataFrame
+        A 2 column DataFrame containing every unique userID and the donorGroup
+        account they can be found in.
+
+    Notes
+    -----
+    Called From:
+        - __main__
+
+    Calls To:
+        - parse_arguments
+        - accept_and_get_list
+
+    """
+
+    args = parse_arguments()
     final_donor_list = accept_and_get_list(args)
+
+    return final_donor_list
+
+
+if __name__ == "__main__":
+    final_donor_list = main()
