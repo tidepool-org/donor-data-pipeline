@@ -102,8 +102,8 @@ def make_folder_if_doesnt_exist(folder_paths):
 
     Parameters
     ----------
-        folder_paths : str or list
-            The folder paths to be made
+    folder_paths : str or list
+        The folder paths to be made
 
     Returns
     -------
