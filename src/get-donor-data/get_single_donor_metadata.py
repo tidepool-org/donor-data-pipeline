@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 """
-Get Donor Account Metadata
-===========================
-:File: get_donor_data_and_metadata.py
-:Description: Gets metadata for a Tidepool account
+Download Tidepool Account Metadata
+==================================
+:File: get_single_donor_metadata.py
+:Description: Downloads all a Tidepool account's metadata
 :Version: 0.0.1
 :Created: 2019-05-26
 :Authors: Ed Nykaza (etn), Jason Meno (jam)
@@ -65,6 +65,10 @@ def parse_arguments():
     -----
     Called From:
         - main
+
+    Creates:
+        data/PHI-YYYY-MM-DD-donor-data/PHI-YYYY-MM-DD-metadata
+            PHI-<userid>.csv
 
     """
     # USER INPUTS (choices to be made in order to run the code)
@@ -137,7 +141,6 @@ def parse_arguments():
     return args
 
 
-# %% FUNCTIONS
 def make_folder_if_doesnt_exist(folder_paths):
     r"""Makes folder directories from any folder path string or list of folder
     path strings.
@@ -315,7 +318,6 @@ def get_shared_metadata(
     return df, userid_of_shared_user
 
 
-# %% START OF CODE
 def get_and_save_metadata(
     date_stamp=np.nan,
     data_path=np.nan,
@@ -351,7 +353,7 @@ def get_and_save_metadata(
     Notes
     -----
     Called From:
-        - :py:func:`main`
+        - main
     Calls To:
         - make_folder_if_doesnt_exist
         - get_shared_metadata
@@ -422,5 +424,6 @@ def main():
     return
 
 
+# %% Main Call
 if __name__ == "__main__":
     main()
