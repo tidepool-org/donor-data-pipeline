@@ -339,7 +339,6 @@ def accept_new_donors_and_get_donor_list(auth):
     return nAccepted, df
 
 
-# %% START OF CODE
 def accept_and_get_list(args):
     r"""Accepts all pending data share invitations and gets a unique donor list
 
@@ -492,13 +491,33 @@ def main():
         - parse_arguments
         - accept_and_get_list
 
-    """
+    Creates:
+        data/PHI-YYYY-MM-DD-donor-data
+            PHI-YYYY-MM-DD-uniqueDonorList.csv
 
+    The out csv contains two columns will all unique donor userID values and
+    each donor’s associated donorGroup
+
+    Although a userID appears only once with a donorGroup next to their ID,
+    their ID may be in other ‘donorGroup’ accounts as well. This script had
+    evolved to originally output a csv for every donor group so Tidepool could
+    calculate what percentage of donations should go to certain donor groups.
+
+    Every donor should be in the main ‘bigdata’ account, but there was an issue
+    early on in the data donation mechanism where this was not always the case.
+    If a donor wanted to support JDRF, then their data should end up in both
+    ‘bigdata’ and ‘JDRF’ accounts as share-requests. Often, this would result
+    in only the ‘JDRF’ account getting the request. So, if we want to download
+    all donor data, we need to download their data from accounts we know they
+    shared with.
+
+    """
     args = parse_arguments()
     final_donor_list = accept_and_get_list(args)
 
     return final_donor_list
 
 
+# %% Main Call
 if __name__ == "__main__":
     final_donor_list = main()
