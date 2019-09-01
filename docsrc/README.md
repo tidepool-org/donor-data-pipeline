@@ -5,8 +5,7 @@ sphinx
 1. Complete the `Project Setup` from the Readme.mb that is located at the root of the donor-docs-pipeline project. 
 
 2. To build the content
-    - Remove existing files : from within the donor-docs-pipeline/docsrc directory run `make clean`. The donor-docs-pipeline/docs
-    directory should now be empty. 
+    - Remove existing files : from within the donor-docs-pipeline/docsrc directory run `make clean`. The files in donor-docs-pipeline/docs will be removed.
     - Build the new docs : from within the donor-docs-pipeline/docsrc directory run `make html`. The donor-docs-pipeline/docs directory should now have the new content. 
 
 3. Test the build by opening the donor-docs-pipeline/docs/index.html page. 

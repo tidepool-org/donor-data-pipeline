@@ -9,6 +9,8 @@ dependencies:
 - pytest=5.0.1
 - pytest-cov=2.7.1
 - sphinx=2.1.2
+- sphinx-readable-theme=1.3.0
 
 - pip:
   - python-dotenv==0.10.3
+
