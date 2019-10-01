@@ -3,7 +3,7 @@
 "nTempBasalsPerDayIsClosedLoop": 30,
 "timeFreqMin": 5,
 "bolusesPerDay": 1,
-"cgmPercentPerDay": 0.5,
+"cgmPercentPerDay": 0.7,
 "tierAbbr": "T",
 "tierNames": ["T1", "T2", "T3", "T4", "T5"],
 "minContiguousDays": [30, 100, 200, 365, 730],
