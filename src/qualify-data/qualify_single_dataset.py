@@ -1,7 +1,19 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-qualify donor data
+Qualify Tidepool Account Device Data
+=====================================
+:File: qualify_single_dataset.py
+:Description: Qualifies a Tidepool account's device data using a predefined
+    set of qualification criteria
+:Version: 0.0.1
+:Created: 2019-05-26
+:Authors: Ed Nykaza (etn), Jason Meno (jam)
+:Dependencies:
+    - tidepool-qualification-criteria.json (or another similar .json file)
+    - A userid to qualify
+:License: BSD-2-Clause
+
 """
 
 
@@ -15,64 +27,95 @@ import datetime as dt
 import numpy as np
 
 
-# %% USER INPUTS (choices to be made in order to run the code)
-codeDescription = "qualify donor data"
-parser = argparse.ArgumentParser(description=codeDescription)
+# %% Function Definitions
+def parse_arguments():
+    r"""Parses command line arguments
 
-parser.add_argument(
-    "-d",
-    "--date-stamp",
-    dest="date_stamp",
-    default=dt.datetime.now().strftime("%Y-%m-%d"),
-    help="date, in '%Y-%m-%d' format, of the date when " +
-    "donors were accepted"
-)
+    Parameters
+    ----------
+    None
 
-parser.add_argument(
-    "-u",
-    "--userid",
-    dest="userid",
-    default=np.nan,
-    help="userid of account shared with the donor group or master account"
-)
+    Returns
+    -------
+    args : argparse.Namespace
+    A namespace of arguments parsed by the argparse package.
 
-parser.add_argument(
-    "-o",
-    "--output-data-path",
-    dest="data_path",
-    default=os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__), "..", "data"
-        )
-    ),
-    help="the output path where the data is stored"
-)
+    This namespace includes the following:
+        **date_stamp** : str
+            A YYYY-MM-DD formatted datestamp
+        **userid** : str
+            userid segment of the filename to qualify using format "PHI-userid"
+        **data_path** : str
+            The absolute output path where the data is stored
+        **qualificationCriteria** : argparse.FileType('r')
+            JSON object parsed from a file containing qualification criteria
+        **save_dayStats** : bool
+            True/False to save the daily statistics used during qualification
 
-parser.add_argument("-q",
-                    "--qualification-criteria",
-                    dest="qualificationCriteria",
-                    default=os.path.abspath(
-                        os.path.join(
-                        os.path.dirname(__file__),
-                        "tidepool-qualification-criteria.json")
-                    ),
-                    type=argparse.FileType('r'),
-                    help="JSON file to be processed, see " +
-                         "tidepool-qualification-critier.json " +
-                         "for a list of required fields")
+    Notes
+    -----
+    Called From:
+        - main
 
-parser.add_argument(
-    "-s",
-    "--save-dayStats",
-    dest="save_dayStats",
-    default="False",
-    help="save the day stats used for qualifying (True/False)"
-)
+    """
+    codeDescription = "qualify donor data"
+    parser = argparse.ArgumentParser(description=codeDescription)
 
-args = parser.parse_args()
+    parser.add_argument(
+        "-d",
+        "--date-stamp",
+        dest="date_stamp",
+        default=dt.datetime.now().strftime("%Y-%m-%d"),
+        help="date, in '%Y-%m-%d' format, of the date when " +
+        "donors were accepted"
+    )
+
+    parser.add_argument(
+        "-u",
+        "--userid",
+        dest="userid",
+        default=np.nan,
+        help="userid of account shared with the donor group or master account"
+    )
+
+    parser.add_argument(
+        "-o",
+        "--output-data-path",
+        dest="data_path",
+        default=os.path.abspath(
+            os.path.join(
+                os.path.dirname('__file__'), "..", "data"
+            )
+        ),
+        help="the output path where the data is stored"
+    )
+
+    parser.add_argument("-q",
+                        "--qualification-criteria",
+                        dest="qualificationCriteria",
+                        default=os.path.abspath(
+                            os.path.join(
+                            os.path.dirname('__file__'),
+                            "tidepool-qualification-criteria.json")
+                        ),
+                        type=argparse.FileType('r'),
+                        help="JSON file to be processed, see " +
+                             "tidepool-qualification-critier.json " +
+                             "for a list of required fields")
+
+    parser.add_argument(
+        "-s",
+        "--save-dayStats",
+        dest="save_dayStats",
+        default="False",
+        help="save the day stats used for qualifying (True/False)"
+    )
+
+    args = parser.parse_args()
+
+    return args
 
 
-# %% FUNCTIONS
 def defineStartAndEndIndex(args, nDonors):
     startIndex = int(args.startIndex)
     endIndex = int(args.endIndex)
@@ -86,9 +129,90 @@ def defineStartAndEndIndex(args, nDonors):
     return startIndex, endIndex
 
 
-def removeNegativeDurations(df):
-    if "duration" in list(df):
+def cleanDurationColumn(df):
+    r"""A cleaning function to move all non-float-type durations into their own
+    column
 
+    The physicalActivity datatype introduces json blobs into the duration field
+    which throws an error when searching for negative durations in the function
+    removeNegativeDurations
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data but
+        may contain a new "physicalActivity.info" column
+
+    Notes
+    -----
+    Called From:
+        - removeNegativeDurations
+
+    """
+    physicalActivityRows = df['type'] == 'physicalActivity'
+
+    if sum(physicalActivityRows) > 0:
+        df["physicalActivity.info"] = df['duration']
+        df.loc[physicalActivityRows, 'duration'] = np.nan
+
+    return df
+
+
+def removeNegativeDurations(df):
+    r"""A cleaning function to remove negative basal durations
+
+    Negative pump event durations have been introduced by the Tidepool
+    uploader in the past. This is caused when a basal suspend event is matched
+    with the incorrect basal resume event.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data
+    nNegativeDurations : int
+        The number of negative durations removed from the dataframe
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data but
+        may contain less rows than before from the removed negative basals
+
+    Raises
+    ------
+    ValueError: could not convert string to float
+        This often occurs when physicalActivity data is present, and a json
+        blob has been inserted into the duration field.
+
+    Notes
+    -----
+    Called From:
+        - main
+
+    Calls To:
+        - cleanDurationColumn
+
+    TODO:
+        If a dataset has one improper calculation, it is likely to have others.
+        A dataset with many nNegativedurations could be considered lesser
+        quality when it comes to data accuracy.
+
+        This function may break if a data source uses the duration column. This
+        is often seen in physicalActivity healthkit data, where an exercise
+        field is stored as a dictionary with units and a value.
+
+        e.g. {'units': 'minutes', 'value': 40}
+
+        The cleanDurationColumn should help reduce this problem.
+
+    """
+    if "duration" in list(df):
+        df = cleanDurationColumn(df)
         nNegativeDurations = sum(df.duration.astype(float) < 0)
         if nNegativeDurations > 0:
             df = df[~(df.duration.astype(float) < 0)]
@@ -99,7 +223,28 @@ def removeNegativeDurations(df):
 
 
 def add_uploadDateTime(df):
-    if "upload" in data.type.unique():
+    r"""Adds an "uploadTime" column to the dataframe and corrects missing
+    upload times to records from healthkit data
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data
+
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        The same dataframe as the input but with an added "uploadTime" column
+
+
+    Notes
+    -----
+    Called From:
+        - main
+
+    """
+    if "upload" in df.type.unique():
         uploadTimes = pd.DataFrame(
             df[df.type == "upload"].groupby("uploadId").time.describe()["top"]
         )
@@ -133,6 +278,33 @@ def add_uploadDateTime(df):
 
 
 def filterAndSort(groupedDF, filterByField, sortByField):
+    r"""Given a grouped dataframe, isolate a specific column and sort it using
+    the specified sortByField
+
+    Parameters
+    ----------
+    groupedDF : pandas.DataFrameGroupBy
+        A very large dataframe contaning all Tidepool account device data,
+        grouped by type
+    filterByField : str
+        The column to isolate from the groupedDF, either 'cbg', 'bolus',
+        'basal', or 'wizard'
+    sortByField : str
+        The column which will sort the filtered dataframe. e.g. 'time'
+
+    Returns
+    -------
+    filterDF : pandas.DataFrame
+        A filtered and sorted dataframe
+
+    Notes
+    -----
+    Called From:
+        - main
+        - getClosedLoopDays
+        - getCalculatorCounts
+
+    """
     filterDF = groupedDF.get_group(filterByField).dropna(axis=1, how="all")
     filterDF = filterDF.sort_values(sortByField)
 
@@ -180,8 +352,30 @@ def getClosedLoopDays(groupedData, qualCriteria, metadata):
 
 
 def removeInvalidCgmValues(df):
+    r"""Filters all rows with CGM values between 38 and 402 mg/dL (inclusive)
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A dataframe containing all CGM data (type == 'cbg')
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        A dataframe containing all CGM data, possibly some rows removed
+    nRemoved : int
+        The number of invalid CGM rows removed
+
+    Notes
+    -----
+    Called From:
+        - main
+
+    Calculations are done in mmol/L
+
+    """
     nBefore = len(df)
-    # remove values < 38 and > 402 mg/dL
+    # remove values < 38 and > 402 mg/dL, using mmol/L
     df = df.query("(value >= 2.109284236597303) and" +
                   "(value <= 22.314006924003046)")
     nRemoved = nBefore - len(df)
@@ -409,7 +603,35 @@ def qualify(df, metaDF, q, idx):
 
 
 def temp_remove_fields(df, removeFields):
+    r"""Temporarily removes columns from a dataframe.
 
+    Splits the data into two dataframes. One will be flattened by the
+    the parent function, flatten_json, and the other will be temporarily saved
+    for merging later.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data
+    removeFields : list
+        A list of column names not to flatten.
+            Hard Coded as: ["suppressed", "recommended", "payload"]
+
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data but
+        without the removeFields columns dropped
+    tempDf : pandas.DataFrame
+        A temporary dataframe containing the dropped columns
+
+    Notes
+    -----
+    Called From:
+        - flatten_json
+
+    """
     tempRemoveFields = list(set(df) & set(removeFields))
     tempDf = df[tempRemoveFields]
     df = df.drop(columns=tempRemoveFields)
@@ -418,6 +640,46 @@ def temp_remove_fields(df, removeFields):
 
 
 def flatten_json(df, doNotFlattenList):
+    r"""(INACTIVE) Flattens json embedded in cells into their own dataframes
+
+    Loops through each column, and looks for any cell that contains a list or
+    json blob using "[" and "{" as markers.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data
+    doNotFlattenList : list
+        A list of column names not to flatten.
+            Hard Coded as: ["suppressed", "recommended", "payload"]
+
+
+    Returns
+    -------
+    df : pandas.DataFrame
+        A very large dataframe contaning all Tidepool account device data but
+        all json columns are flattened
+
+    Notes
+    -----
+    Called From:
+        - main
+
+    Calls To:
+        - temp_remove_fields
+
+    Flatten Algorithm
+        The algorithm currently goes through every cell of every column and
+        checks if there exists as list or dictionary using the isinstance()
+        function.
+
+        Pandas DataFrames do not use list or dict class instances. All imported
+        csv columns with embedded lists and dictionaries are stored as strings.
+
+        Thus, no json or list data are flattened. This function is being set to
+        inactive until fixed or replaced.
+
+    """
     # remove fields that we don't want to flatten
     df, holdData = temp_remove_fields(df, doNotFlattenList)
 
@@ -516,7 +778,24 @@ def round_time(df, timeIntervalMinutes=5, timeField="time",
 
 
 def make_folder_if_doesnt_exist(folder_paths):
-    ''' function requires a single path or a list of paths'''
+    r"""Makes folder directories from any folder path string or list of folder
+    path strings.
+
+    Parameters
+    ----------
+    folder_paths : str or list
+        The folder paths to be made
+
+    Returns
+    -------
+    None
+
+    Notes
+    -----
+    Called From:
+        - get_and_save_metadata
+
+    """
     if not isinstance(folder_paths, list):
         folder_paths = [folder_paths]
     for folder_path in folder_paths:
@@ -525,240 +804,294 @@ def make_folder_if_doesnt_exist(folder_paths):
     return
 
 
-# %% load in all data for user
-userid = args.userid
-if pd.isnull(userid):
-    userid = input("Enter Tidepool userid:\n")
+def main():
+    r"""Main function for qualify_single_dataset.py
 
-metadata = pd.DataFrame(index=[userid])
+    Calls and loops through all other functions
 
-phi_date_stamp = "PHI-" + args.date_stamp
-donor_folder = os.path.join(args.data_path, phi_date_stamp + "-donor-data")
+    Parameters
+    ----------
+    None
 
-qualCriteria = json.load(args.qualificationCriteria)
-criteriaMaxCgmPointsPerDay = 1440 / qualCriteria["timeFreqMin"]
-qualifiedOn = dt.datetime.now().strftime("%Y-%m-%d")
+    Returns
+    -------
+    None
 
-qualify_path = os.path.join(
-    donor_folder,
-    args.date_stamp + "-qualified-by-" + qualCriteria["name"] + "-criteria"
-)
+    Notes
+    -----
+    Called From:
+        - __main__
 
-metadata_path = os.path.join(qualify_path, "metadata")
-dayStats_path = os.path.join(qualify_path, "dayStats")
-make_folder_if_doesnt_exist([metadata_path, dayStats_path])
+    Calls To:
+        - parse_arguments
+        - make_folder_if_doesnt_exist
+        - add_uploadDateTime
+        - flatten_json (INACTIVE)
+        - removeNegativeDurations
+        - filterAndSort
+        - removeInvalidCgmValues
+        - removeCgmDuplicates
+        - round_time
+        - removeDuplicates
+        - getStartAndEndTimes
+        - getListOfDexcomCGMDays
+        - getCalculatorCounts
+        - getClosedLoopDays
+        - isQualifyingDay
+        - getSummaryStats
+        - qualify
 
-dataset_path = os.path.join(donor_folder, phi_date_stamp + "-csvData")
-file_path = os.path.join(dataset_path, "PHI-" + userid + ".csv")
+    Creates:
+        data/PHI-YYYY-MM-DD-donor-data/YYYY-MM-DD-qualified-by-<name>-criteria
+            dayStats/
+                <userid>.csv (optional)
+            metadata
+                <userid>.csv
 
-if os.path.exists(file_path):
-    file_size = os.stat(file_path).st_size
-    metadata["fileSize"] = file_size
-    if file_size > 1000:
-        data = pd.read_csv(file_path, low_memory=False)
+    """
+    args = parse_arguments()
+    # load in all data for user
+    userid = args.userid
+    if pd.isnull(userid):
+        userid = input("Enter Tidepool userid:\n")
 
-        # attach upload time to each record, for resolving duplicates
-        data = add_uploadDateTime(data)
+    metadata = pd.DataFrame(index=[userid])
 
-        # remove extra data types that are not needed for qualification
-        data = data[
-            (data["type"] == "cbg") |
-            (data["type"] == "basal") |
-            (data["type"] == "bolus") |
-            (data["type"] == "wizard")
-        ]
+    phi_date_stamp = "PHI-" + args.date_stamp
+    donor_folder = os.path.join(args.data_path, phi_date_stamp + "-donor-data")
 
-        # filter by only hybridClosedLoop data
-        if "hClosedLoop" in qualCriteria["name"]:
-            if "basal" in data.type.unique():
-                data["date"] = pd.to_datetime(data.time).dt.date
-                bd = data[(data.type == "basal") & (data.deliveryType == "temp")]
-                tempBasalCounts = pd.DataFrame(bd.groupby("date").deliveryType.count()).reset_index()
-                tempBasalCounts.rename({"deliveryType": "tempBasalCounts"}, axis=1, inplace=True)
-                data = pd.merge(data, tempBasalCounts, on="date")
-                data = data[data.tempBasalCounts >= qualCriteria["nTempBasalsPerDayIsClosedLoop"]]
+    qualCriteria = json.load(args.qualificationCriteria)
+    criteriaMaxCgmPointsPerDay = 1440 / qualCriteria["timeFreqMin"]
+    qualifiedOn = dt.datetime.now().strftime("%Y-%m-%d")
+
+    qualify_path = os.path.join(
+        donor_folder,
+        "PHI-" + args.date_stamp + "-qualified-by-" + qualCriteria["name"] + "-criteria"
+    )
+
+    metadata_path = os.path.join(qualify_path, "metadata")
+    dayStats_path = os.path.join(qualify_path, "dayStats")
+    make_folder_if_doesnt_exist([metadata_path, dayStats_path])
+
+    dataset_path = os.path.join(donor_folder, phi_date_stamp + "-csvData")
+    file_path = os.path.join(dataset_path, "PHI-" + userid + ".csv")
+
+    if os.path.exists(file_path):
+        file_size = os.stat(file_path).st_size
+        metadata["fileSize"] = file_size
+        if file_size > 1000:
+            data = pd.read_csv(file_path, low_memory=False)
+
+            # attach upload time to each record, for resolving duplicates
+            data = add_uploadDateTime(data)
+
+            # remove extra data types that are not needed for qualification
+            data = data[
+                (data["type"] == "cbg") |
+                (data["type"] == "basal") |
+                (data["type"] == "bolus") |
+                (data["type"] == "wizard")
+            ]
+
+            # filter by only hybridClosedLoop data
+            if "hClosedLoop" in qualCriteria["name"]:
+                if "basal" in data.type.unique():
+                    data["date"] = pd.to_datetime(data.time).dt.date
+                    bd = data[(data.type == "basal") & (data.deliveryType == "temp")]
+                    tempBasalCounts = pd.DataFrame(bd.groupby("date").deliveryType.count()).reset_index()
+                    tempBasalCounts.rename({"deliveryType": "tempBasalCounts"}, axis=1, inplace=True)
+                    data = pd.merge(data, tempBasalCounts, on="date")
+                    data = data[data.tempBasalCounts >= qualCriteria["nTempBasalsPerDayIsClosedLoop"]]
+                else:
+                    data = pd.DataFrame(columns=list(data))
+
+            # filter by only 670g data
+            if "m670g" in qualCriteria["name"]:
+                data = data[data.deviceId.str.contains("1780")]
+
+            # flatten json - INACTIVE
+            # See flatten_json function notes for details
+            # do_not_flatten_list = ["suppressed", "recommended", "payload"]
+            # data = flatten_json(data, do_not_flatten_list)
+
+            if (("cbg" in data.type.unique()) and ("bolus" in data.type.unique())):
+
+                # get rid of all negative durations
+                data, numberOfNegativeDurations = removeNegativeDurations(data)
+                metadata["all.negativeDurationsRemoved.count"] = numberOfNegativeDurations
+
+                # group data by type
+                groupedData = data.groupby(by="type")
+
+                # CGM
+                # filter by cgm and sort by time
+                cgmData = filterAndSort(groupedData, "cbg", "time")
+
+                # get rid of cbg values too low/high (< 38 & > 402 mg/dL)
+                cgmData, numberOfInvalidCgmValues = removeInvalidCgmValues(cgmData)
+                metadata["cgm.invalidValues.count"] = numberOfInvalidCgmValues
+
+                # get rid of duplicates that have the same ["deviceTime", "value"]
+                cgmData, nDuplicatesRemovedDeviceTime = removeCgmDuplicates(cgmData, "deviceTime")
+                metadata["cgm.nDuplicatesRemovedDeviceTime.count"] = nDuplicatesRemovedDeviceTime
+
+                # get rid of duplicates that have the same ["time", "value"]
+                cgmData, nDuplicatesRemovedUtcTime = removeCgmDuplicates(cgmData, "time")
+
+                metadata["cgm.nDuplicatesRemovedUtcTime.count"] = \
+                    nDuplicatesRemovedUtcTime
+
+                # round time to the nearest 5 minutes
+                cgmData = round_time(
+                    cgmData,
+                    timeIntervalMinutes=5,
+                    timeField="time",
+                    roundedTimeFieldName="roundedTime",
+                    verbose=False
+                )
+
+                # get rid of duplicates that have the same "roundedTime"
+                cgmData, nDuplicatesRemovedRoundedTime = removeDuplicates(cgmData, "roundedTime")
+
+                metadata["cgm.nDuplicatesRemovedRoundedTime.count"] = nDuplicatesRemovedRoundedTime
+
+                # calculate day or date of data
+                cgmData["dayIndex"] = cgmData.roundedTime.dt.date
+
+                # get start and end times
+                cgmBeginDate, cgmEndDate = getStartAndEndTimes(cgmData, "dayIndex")
+                metadata["cgm.beginDate"] = cgmBeginDate
+                metadata["cgm.endDate"] = cgmEndDate
+
+                # get a list of dexcom cgms
+                cgmData, percentDexcom = getListOfDexcomCGMDays(cgmData)
+                metadata["cgm.percentDexcomCGM"] = percentDexcom
+
+                # group by date (day) and get stats
+                catDF = cgmData.groupby(cgmData["dayIndex"])
+                cgmRecordsPerDay = \
+                    pd.DataFrame(catDF.value.count()). \
+                    rename(columns={"value": "cgm.count"})
+                dayDate = catDF.dayIndex.describe()["top"]
+                dexcomCGM = catDF.dexcomCGM.describe()["top"]
+                nTypesCGM = catDF.dexcomCGM.describe()["unique"]
+                cgmRecordsPerDay["cgm.dexcomOnly"] = \
+                    (dexcomCGM & (nTypesCGM == 1))
+                cgmRecordsPerDay["date"] = cgmRecordsPerDay.index
+
+                # BOLUS
+                # filter by bolus and sort by time
+                bolusData = filterAndSort(groupedData, "bolus", "time")
+
+                # get rid of duplicates
+                bolusData, nDuplicatesRemoved = removeDuplicates(bolusData, ["time", "normal"])
+                metadata["bolus.duplicatesRemoved.count"] = nDuplicatesRemoved
+
+                # calculate day or date of data
+                bolusData["dayIndex"] = pd.DatetimeIndex(bolusData.time).date
+
+                # get start and end times
+                bolusBeginDate, bolusEndDate = getStartAndEndTimes(bolusData,
+                                                                   "dayIndex")
+                metadata["bolus.beginDate"] = bolusBeginDate
+                metadata["bolus.endDate"] = bolusEndDate
+
+                # group by date and get bolusRecordsPerDay
+                catDF = bolusData.groupby(bolusData["dayIndex"])
+                bolusRecordsPerDay = \
+                    pd.DataFrame(catDF.subType.count()). \
+                    rename(columns={"subType": "bolus.count"})
+
+                bolusRecordsPerDay["date"] = bolusRecordsPerDay.index
+
+                # % GET CALCULATOR DATA (AKA WIZARD DATA)
+                calculatorRecordsPerDay, metadata = getCalculatorCounts(groupedData, metadata)
+
+                # % GET CLOSED LOOP DAYS WITH TEMP BASAL DATA
+                isClosedLoopDay, is670g, metadata = \
+                    getClosedLoopDays(groupedData, qualCriteria, metadata)
+
+                # % CONTIGUOUS DATA
+                # calculate the start and end of contiguous data
+                contiguousBeginDate = max(cgmBeginDate, bolusBeginDate)
+                contiguousEndDate = min(cgmEndDate, bolusEndDate)
+                metadata["contiguous.beginDate"] = contiguousBeginDate
+                metadata["contiguous.endDate"] = contiguousEndDate
+
+                # create a dataframe over the contiguous time series
+                rng = pd.date_range(contiguousBeginDate, contiguousEndDate).date
+                contiguousData = pd.DataFrame(rng, columns=["date"])
+
+                # merge data
+                contiguousData = pd.merge(contiguousData, bolusRecordsPerDay,
+                                          on="date", how="left")
+                contiguousData = pd.merge(contiguousData, cgmRecordsPerDay,
+                                          on="date", how="left")
+                contiguousData = pd.merge(contiguousData, calculatorRecordsPerDay,
+                                          on="date", how="left")
+                contiguousData = pd.merge(contiguousData, isClosedLoopDay,
+                                          on="date", how="left")
+                contiguousData = pd.merge(contiguousData, is670g,
+                                          on="date", how="left")
+
+                # fill in nan's with 0s
+                for dataType in ["bolus", "cgm", "calculator", "basal.temp"]:
+                    dataType = dataType + ".count"
+
+                    if dataType in list(contiguousData):
+                        contiguousData[dataType] = \
+                            contiguousData[dataType].fillna(0)
+
+                if ((len(contiguousData) > 0) &
+                   (sum(contiguousData["cgm.count"] > 0) > 0) &
+                   (sum(contiguousData["bolus.count"] > 0) > 0)):
+    
+                    # % QUALIFICATION AT DAY LEVEL
+                    # dexcom specific qualification criteria
+                    if qualCriteria["name"] == "dexcom":
+                        contiguousData = dexcomCriteria(contiguousData)
+
+                    # determine if each day qualifies
+                    contiguousData = \
+                        isQualifyingDay(contiguousData,
+                                        qualCriteria["bolusesPerDay"],
+                                        qualCriteria["cgmPercentPerDay"],
+                                        criteriaMaxCgmPointsPerDay)
+                    # calcuate summary stats
+                    metadata = getSummaryStats(metadata, contiguousData)
+
+                    # % QUALIFICATION OF DATASET
+                    contiguousData, metadata = qualify(contiguousData, metadata,
+                                                       qualCriteria, userid)
+
+                    # % SAVE RESULTS
+                    tier = metadata[qualCriteria["tierAbbr"] + ".topTier"].values[0]
+                    contiguousData.index.name = "dayIndex"
+                    if ast.literal_eval(args.save_dayStats):
+                        contiguousData.to_csv(
+                            os.path.join(dayStats_path, userid + ".csv")
+                        )
+
+                    # update on progress
+                    output_message = "qualifed as %s" % tier
+                    print(userid, output_message)
             else:
-                data = pd.DataFrame(columns=list(data))
-
-        # filter by only 670g data
-        if "m670g" in qualCriteria["name"]:
-            data = data[data.deviceId.str.contains("1780")]
-
-        # flatten json
-        do_not_flatten_list = ["suppressed", "recommended", "payload"]
-        data = flatten_json(data, do_not_flatten_list)
-
-        if (("cbg" in data.type.unique()) and ("bolus" in data.type.unique())):
-
-            # get rid of all negative durations
-            data, numberOfNegativeDurations = removeNegativeDurations(data)
-            metadata["all.negativeDurationsRemoved.count"] = numberOfNegativeDurations
-
-            # group data by type
-            groupedData = data.groupby(by="type")
-
-            # %% CGM
-            # filter by cgm and sort by time
-            cgmData = filterAndSort(groupedData, "cbg", "time")
-
-            # get rid of cbg values too low/high (< 38 & > 402 mg/dL)
-            cgmData, numberOfInvalidCgmValues = removeInvalidCgmValues(cgmData)
-            metadata["cgm.invalidValues.count"] = numberOfInvalidCgmValues
-
-            # get rid of duplicates that have the same ["deviceTime", "value"]
-            cgmData, nDuplicatesRemovedDeviceTime = removeCgmDuplicates(cgmData, "deviceTime")
-            metadata["cgm.nDuplicatesRemovedDeviceTime.count"] = nDuplicatesRemovedDeviceTime
-
-            # get rid of duplicates that have the same ["time", "value"]
-            cgmData, nDuplicatesRemovedUtcTime = removeCgmDuplicates(cgmData, "time")
-
-            metadata["cgm.nDuplicatesRemovedUtcTime.count"] = \
-                nDuplicatesRemovedUtcTime
-
-            # round time to the nearest 5 minutes
-            cgmData = round_time(
-                cgmData,
-                timeIntervalMinutes=5,
-                timeField="time",
-                roundedTimeFieldName="roundedTime",
-                verbose=False
-            )
-
-            # get rid of duplicates that have the same "roundedTime"
-            cgmData, nDuplicatesRemovedRoundedTime = removeDuplicates(cgmData, "roundedTime")
-
-            metadata["cgm.nDuplicatesRemovedRoundedTime.count"] = nDuplicatesRemovedRoundedTime
-
-            # calculate day or date of data
-            cgmData["dayIndex"] = cgmData.roundedTime.dt.date
-
-            # get start and end times
-            cgmBeginDate, cgmEndDate = getStartAndEndTimes(cgmData, "dayIndex")
-            metadata["cgm.beginDate"] = cgmBeginDate
-            metadata["cgm.endDate"] = cgmEndDate
-
-            # get a list of dexcom cgms
-            cgmData, percentDexcom = getListOfDexcomCGMDays(cgmData)
-            metadata["cgm.percentDexcomCGM"] = percentDexcom
-
-            # group by date (day) and get stats
-            catDF = cgmData.groupby(cgmData["dayIndex"])
-            cgmRecordsPerDay = \
-                pd.DataFrame(catDF.value.count()). \
-                rename(columns={"value": "cgm.count"})
-            dayDate = catDF.dayIndex.describe()["top"]
-            dexcomCGM = catDF.dexcomCGM.describe()["top"]
-            nTypesCGM = catDF.dexcomCGM.describe()["unique"]
-            cgmRecordsPerDay["cgm.dexcomOnly"] = \
-                (dexcomCGM & (nTypesCGM == 1))
-            cgmRecordsPerDay["date"] = cgmRecordsPerDay.index
-
-            # %% BOLUS
-            # filter by bolus and sort by time
-            bolusData = filterAndSort(groupedData, "bolus", "time")
-
-            # get rid of duplicates
-            bolusData, nDuplicatesRemoved = removeDuplicates(bolusData, ["time", "normal"])
-            metadata["bolus.duplicatesRemoved.count"] = nDuplicatesRemoved
-
-            # calculate day or date of data
-            bolusData["dayIndex"] = pd.DatetimeIndex(bolusData.time).date
-
-            # get start and end times
-            bolusBeginDate, bolusEndDate = getStartAndEndTimes(bolusData,
-                                                               "dayIndex")
-            metadata["bolus.beginDate"] = bolusBeginDate
-            metadata["bolus.endDate"] = bolusEndDate
-
-            # group by date and get bolusRecordsPerDay
-            catDF = bolusData.groupby(bolusData["dayIndex"])
-            bolusRecordsPerDay = \
-                pd.DataFrame(catDF.subType.count()). \
-                rename(columns={"subType": "bolus.count"})
-
-            bolusRecordsPerDay["date"] = bolusRecordsPerDay.index
-
-            # % GET CALCULATOR DATA (AKA WIZARD DATA)
-            calculatorRecordsPerDay, metadata = getCalculatorCounts(groupedData, metadata)
-
-            # % GET CLOSED LOOP DAYS WITH TEMP BASAL DATA
-            isClosedLoopDay, is670g, metadata = \
-                getClosedLoopDays(groupedData, qualCriteria, metadata)
-
-            # % CONTIGUOUS DATA
-            # calculate the start and end of contiguous data
-            contiguousBeginDate = max(cgmBeginDate, bolusBeginDate)
-            contiguousEndDate = min(cgmEndDate, bolusEndDate)
-            metadata["contiguous.beginDate"] = contiguousBeginDate
-            metadata["contiguous.endDate"] = contiguousEndDate
-
-            # create a dataframe over the contiguous time series
-            rng = pd.date_range(contiguousBeginDate, contiguousEndDate).date
-            contiguousData = pd.DataFrame(rng, columns=["date"])
-
-            # merge data
-            contiguousData = pd.merge(contiguousData, bolusRecordsPerDay,
-                                      on="date", how="left")
-            contiguousData = pd.merge(contiguousData, cgmRecordsPerDay,
-                                      on="date", how="left")
-            contiguousData = pd.merge(contiguousData, calculatorRecordsPerDay,
-                                      on="date", how="left")
-            contiguousData = pd.merge(contiguousData, isClosedLoopDay,
-                                      on="date", how="left")
-            contiguousData = pd.merge(contiguousData, is670g,
-                                      on="date", how="left")
-
-            # fill in nan's with 0s
-            for dataType in ["bolus", "cgm", "calculator", "basal.temp"]:
-                dataType = dataType + ".count"
-
-                if dataType in list(contiguousData):
-                    contiguousData[dataType] = \
-                        contiguousData[dataType].fillna(0)
-
-            if ((len(contiguousData) > 0) &
-               (sum(contiguousData["cgm.count"] > 0) > 0) &
-               (sum(contiguousData["bolus.count"] > 0) > 0)):
-
-                # % QUALIFICATION AT DAY LEVEL
-                # dexcom specific qualification criteria
-                if qualCriteria["name"] == "dexcom":
-                    contiguousData = dexcomCriteria(contiguousData)
-
-                # determine if each day qualifies
-                contiguousData = \
-                    isQualifyingDay(contiguousData,
-                                    qualCriteria["bolusesPerDay"],
-                                    qualCriteria["cgmPercentPerDay"],
-                                    criteriaMaxCgmPointsPerDay)
-                # calcuate summary stats
-                metadata = getSummaryStats(metadata, contiguousData)
-
-                # % QUALIFICATION OF DATASET
-                contiguousData, metadata = qualify(contiguousData, metadata,
-                                                   qualCriteria, userid)
-
-                # % SAVE RESULTS
-                tier = metadata[qualCriteria["tierAbbr"] + ".topTier"].values[0]
-                contiguousData.index.name = "dayIndex"
-                if ast.literal_eval(args.save_dayStats):
-                    contiguousData.to_csv(
-                        os.path.join(dayStats_path, userid + ".csv")
-                    )
-
-                # update on progress
-                output_message = "qualifed as %s" % tier
+                output_message = "file does not contain cgm and bolus data"
                 print(userid, output_message)
         else:
-            output_message = "file does not contain cgm and bolus data"
+            output_message = "file does not contain enough data"
             print(userid, output_message)
     else:
-        output_message = "file does not contain enough data"
+        output_message = "file does not exist"
         print(userid, output_message)
-else:
-    output_message = "file does not exist"
-    print(userid, output_message)
-metadata["outputMessage"] = output_message
-metadata.to_csv(
-    os.path.join(metadata_path, userid + ".csv")
-)
+    metadata["outputMessage"] = output_message
+    metadata.to_csv(
+        os.path.join(metadata_path, userid + ".csv")
+    )
+
+    return
+
+
+# %% Main Call
+if __name__ == "__main__":
+    main()
