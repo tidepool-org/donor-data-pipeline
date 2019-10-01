@@ -881,7 +881,14 @@ data = largeTimezoneOffsetCorrection(data)
 
 # %% PREPROCESS DATA: CREATE "DAY" SERIES (cDays)
 # create a continguous-day-series that spans the data date-range
-data["utcTime"] = pd.to_datetime(data.time)
+
+# Use utc=True to speed up UTC timestamp conversion
+# This converts any HH:MM:SS-#### timestamps into utc time from their offset
+data["utcTime"] = pd.to_datetime(data.time, utc=True)
+
+# Remove UTC tz to return timestamps to naive
+data["utcTime"] = data["utcTime"].dt.tz_localize(None)
+
 data["date"] = data["utcTime"].dt.date
 contiguousDays = createContiguousDaySeries(data)
 
