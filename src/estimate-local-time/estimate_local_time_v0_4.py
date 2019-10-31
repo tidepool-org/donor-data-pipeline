@@ -372,7 +372,7 @@ def get_timezone_offset(currentDate, currentTimezone):
                     + float(currentTimezone.split("T")[1].split(":")[0][3:])
                 )
         else:
-            print(e, userid, "error with timezone = ", currentTimezone)
+            print(e, "error with timezone = ", currentTimezone)
             tzo = np.nan
 
     return tzo
