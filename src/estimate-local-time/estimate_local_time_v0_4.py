@@ -1089,40 +1089,13 @@ def estimate_local_time(df):
 
 
 # %% MAIN FUNCTION
-#if __name__ == "__main__":
-#
-#    #  CHECK INPUTS AND OUTPUTS
-#    # check inputs and load data. File must be bigger than 1 KB,
-#    # and in either json, xlsx, or csv format
-#    input_path_and_name = "example-csv.csv"
-#    data, fileName = check_and_load_input_file(input_path_and_name)
-#
-#    # estimate the local time
-#    data, local_time_metadata = estimate_local_time(data.copy())
+if __name__ == "__main__":
 
-# %% DELETE LATER
+    #  CHECK INPUTS AND OUTPUTS
+    # check inputs and load data. File must be bigger than 1 KB,
+    # and in either json, xlsx, or csv format
+    input_path_and_name = "example-csv.csv"
+    data, fileName = check_and_load_input_file(input_path_and_name)
 
-# %% load in single tidepool user
-get_donor_data_path = os.path.abspath(
-    os.path.join(os.path.dirname(__file__), "..")
-)
-if get_donor_data_path not in sys.path:
-    sys.path.insert(0, get_donor_data_path)
-from get_donor_data.get_single_tidepool_dataset_json import (
-    make_folder_if_doesnt_exist, get_data
-)
-from get_donor_data.get_single_donor_metadata import get_shared_metadata
-
-data_path = "/Users/ed/projects/data-analytics/projects/bigdata-processing-pipeline/data/PHI-SAP100_LIST_2019-10-12.csv"
-
-asdf = pd.read_csv(data_path)
-userids = asdf["userid"]
-for userid in userids:
-    print(userid)
-
-data, userid = get_data(
-    weeks_of_data=52*7,
-    donor_group="bigdata",
-    userid="8540700752",
-)
-
+    # estimate the local time
+    data, local_time_metadata = estimate_local_time(data.copy())
