@@ -359,11 +359,18 @@ def get_timezone_offset(currentDate, currentTimezone):
 
         else:
             # edge case in format of GMT-04:00 or GMT+01:00
-            print(userid, "edge case with timezone = ", currentTimezone)
-            tzo = (
-                float(currentTimezone.split("T")[1].split(":")[0]) * 60
-                + float(currentTimezone.split("T")[1].split(":")[1])
-            )
+            if ":" in currentTimezone:
+                tzo = (
+                    float(currentTimezone.split("T")[1].split(":")[0]) * 60
+                    + float(currentTimezone.split("T")[1].split(":")[1])
+                )
+            # this is the case where GMT-0400
+            else:
+                tzo = (
+                    float(currentTimezone.split("T")[1].split(":")[0][0:3]) * 60
+                    + float(currentTimezone.split("T")[1].split(":")[0][3:])
+                )
+
     except Exception as e:
         # Return an empty timezone if the currentTimezone does not exist
         # or throws an error
