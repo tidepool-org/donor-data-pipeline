@@ -342,22 +342,21 @@ def add_device_type(df):
 
 
 def get_timezone_offset(currentDate, currentTimezone):
-
     try:
+        tz = pytz.timezone(currentTimezone)
+        # add 1 day to the current date to account for changes to/from DST
+        tzoNum = int(
+            tz.localize(currentDate + dt.timedelta(days=1)).strftime("%z")
+        )
+        tzoHours = np.floor(tzoNum / 100)
+        tzoMinutes = round((tzoNum / 100 - tzoHours) * 100, 0)
+        tzoSign = np.sign(tzoHours)
+        tzo = int((tzoHours * 60) + (tzoMinutes * tzoSign))
 
-        if 'GMT' not in currentTimezone:
-
-            tz = pytz.timezone(currentTimezone)
-            # add 1 day to the current date to account for changes to/from DST
-            tzoNum = int(
-                tz.localize(currentDate + dt.timedelta(days=1)).strftime("%z")
-            )
-            tzoHours = np.floor(tzoNum / 100)
-            tzoMinutes = round((tzoNum / 100 - tzoHours) * 100, 0)
-            tzoSign = np.sign(tzoHours)
-            tzo = int((tzoHours * 60) + (tzoMinutes * tzoSign))
-
-        else:
+    except Exception as e:
+        # Return an empty timezone if the currentTimezone does not exist
+        # or throws an error
+        if 'GMT' in currentTimezone:
             # edge case in format of GMT-04:00 or GMT+01:00
             if ":" in currentTimezone:
                 tzo = (
@@ -367,15 +366,14 @@ def get_timezone_offset(currentDate, currentTimezone):
             # this is the case where GMT-0400
             else:
                 tzo = (
-                    float(currentTimezone.split("T")[1].split(":")[0][0:3]) * 60
+                    float(
+                            currentTimezone.split("T")[1].split(":")[0][0:3]
+                    ) * 60
                     + float(currentTimezone.split("T")[1].split(":")[0][3:])
                 )
-
-    except Exception as e:
-        # Return an empty timezone if the currentTimezone does not exist
-        # or throws an error
-        print(e, userid, "error with timezone = ", currentTimezone)
-        tzo = np.nan
+        else:
+            print(e, userid, "error with timezone = ", currentTimezone)
+            tzo = np.nan
 
     return tzo
 
