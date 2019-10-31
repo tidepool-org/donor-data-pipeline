@@ -649,8 +649,8 @@ def imputeTzAndTzo(cDF):
 
 
 def getRangeOfTZOsForTimezone(tz):
-    minMaxTzo = [getTimezoneOffset(pd.to_datetime("1/1/2017"), tz),
-                 getTimezoneOffset(pd.to_datetime("5/1/2017"), tz)]
+    minMaxTzo = [get_timezone_offset(pd.to_datetime("1/1/2017"), tz),
+                 get_timezone_offset(pd.to_datetime("5/1/2017"), tz)]
 
     rangeOfTzo = np.arange(int(min(minMaxTzo)), int(max(minMaxTzo))+1, 15)
 
@@ -710,10 +710,14 @@ def applyLocalTimeEstimates(df, cDF):
 
 
 def isDSTChangeDay(currentDate, currentTimezone):
-    tzoCurrentDay = getTimezoneOffset(pd.to_datetime(currentDate),
-                                      currentTimezone)
-    tzoPreviousDay = getTimezoneOffset(pd.to_datetime(currentDate) +
-                                       dt.timedelta(days=-1), currentTimezone)
+    tzoCurrentDay = get_timezone_offset(
+        pd.to_datetime(currentDate),
+        currentTimezone
+    )
+    tzoPreviousDay = get_timezone_offset(
+        pd.to_datetime(currentDate) + dt.timedelta(days=-1),
+        currentTimezone
+    )
 
     return (tzoCurrentDay != tzoPreviousDay)
 
@@ -745,7 +749,7 @@ def assignTzoFromPreviousDay(df, i, previousDayTz):
     df.loc[i, ["est.type"]] = "DEVICE"
     df.loc[i, ["est.timezone"]] = previousDayTz
     df.loc[i, ["est.timezoneOffset"]] = \
-        getTimezoneOffset(pd.to_datetime(df.loc[i, "date"]), previousDayTz)
+        get_timezone_offset(pd.to_datetime(df.loc[i, "date"]), previousDayTz)
 
     df.loc[i, ["est.timeProcessing"]] = df.loc[i-1, "est.timeProcessing"]
     df = addAnnotation(df, i, "tz-inferred-from-prev-day")
@@ -940,7 +944,7 @@ def imputeByTimezone(df, currentDay, prevDaywData, nextDaywData):
                 df.loc[i, ["est.timezone"]] = tz
 
                 df.loc[i, ["est.timezoneOffset"]] = \
-                    getTimezoneOffset(pd.to_datetime(df.loc[i, "date"]), tz)
+                    get_timezone_offset(pd.to_datetime(df.loc[i, "date"]), tz)
 
                 df.loc[i, ["est.type"]] = "IMPUTE"
 
@@ -986,21 +990,6 @@ def addAnnotation(df, idx, annotationMessage):
         df.loc[idx, ["est.annotations"]] = annotationMessage
 
     return df
-
-
-def getTimezoneOffset(currentDate, currentTimezone):
-
-    tz = pytz.timezone(currentTimezone)
-    # here we add 1 day to the current date to account for changes to/from DST
-    tzoNum = int(
-        tz.localize(currentDate + dt.timedelta(days=1)).strftime("%z")
-    )
-    tzoHours = np.floor(tzoNum / 100)
-    tzoMinutes = round((tzoNum / 100 - tzoHours) * 100, 0)
-    tzoSign = np.sign(tzoHours)
-    tzo = int((tzoHours * 60) + (tzoMinutes * tzoSign))
-
-    return tzo
 
 
 def estimate_local_time(df):
