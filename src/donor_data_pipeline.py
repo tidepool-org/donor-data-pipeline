@@ -453,6 +453,11 @@ def pipeline_wrapper(userid,
     print(str(user_loc) + " STARTING PIPELINE")
     data = pd.DataFrame([])
     pipeline_metadata = pd.DataFrame([], index=[user_loc])
+
+    if userid == "":
+      print("No UserID Provided!")
+      userid = input("Please enter a Tidepool userid:\n")
+
     pipeline_metadata['userid'] = userid
     dataset_begin_time = time.time()
 
