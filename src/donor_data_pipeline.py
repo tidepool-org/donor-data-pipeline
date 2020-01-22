@@ -895,7 +895,57 @@ def pipeline_wrapper(userid,
 # %%
 
 if __name__ == "__main__":
+
     pipeline_args = get_args()
+    
+    export_directory = pipeline_args.export_directory
+
+    # If no export directory is provided, it will be created
+    if export_directory == "":
+      today_timestamp = dt.datetime.now().strftime("%Y-%m-%d")
+      export_directory = "PHI-pipeline-export-" + today_timestamp
+      pipeline_args.export_directory = export_directory
+
+    pipeline_results_dir = export_directory + '/PHI-pipeline-results/'
+    train_data_dir = export_directory + "/train/train-data/"
+    test_data_dir = export_directory + "/test/test-data/"
+
+    csv_dir = export_directory + "/PHI-csvData/"
+    qa_dir = export_directory + "/QA/"
+    qa_LTE_cDays_dir = qa_dir + "PHI-LTE-cDays/"
+    qa_qualifed_cDays_dir = qa_dir + "PHI-qualified-days/"
+    qa_vector_qualified_cDays_dir = qa_dir + "PHI-vector-qualified-days/"
+    qa_train_summary_viz_dir = qa_dir + "vizQA/train-dataset-summary-vizQA/"
+    qa_test_summary_viz_dir = qa_dir + "vizQA/test-dataset-summary-vizQA/"
+    qa_train_local_time_viz_dir = qa_dir + "vizQA/train-local-time-vizQA/"
+    qa_test_local_time_viz_dir = qa_dir + "vizQA/test-local-time-vizQA/"
+    qa_train_vector_qualify_viz_dir = qa_dir + \
+        "vizQA/train-vector-qualify-vizQA/"
+    qa_test_vector_qualify_viz_dir = qa_dir + \
+        "vizQA/test-vector-qualify-vizQA/"
+    qa_plotly_dropped_data_viz_dir = qa_dir + \
+     "vizQA/plotly-dropped-data-vizQA/"
+
+    directories = [pipeline_results_dir,
+                   train_data_dir,
+                   test_data_dir,
+                   csv_dir,
+                   qa_dir,
+                   qa_LTE_cDays_dir,
+                   qa_qualifed_cDays_dir,
+                   qa_vector_qualified_cDays_dir,
+                   qa_train_summary_viz_dir,
+                   qa_test_summary_viz_dir,
+                   qa_train_local_time_viz_dir,
+                   qa_test_local_time_viz_dir,
+                   qa_train_vector_qualify_viz_dir,
+                   qa_test_vector_qualify_viz_dir,
+                   qa_plotly_dropped_data_viz_dir
+                   ]
+
+    for directory in directories:
+        if not os.path.exists(directory):
+            os.makedirs(directory)
 
     pipeline_wrapper(pipeline_args.userid,
                      pipeline_args.donor_group,
