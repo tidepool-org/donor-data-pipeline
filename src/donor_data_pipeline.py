@@ -94,7 +94,7 @@ def get_args():
 
     parser.add_argument("-add_tier_prefix",
                         dest="add_tier_prefix",
-                        default=False,
+                        default="False",
                         help="Add a prefix to the .csv data (e.g. T1_, T2_)")
 
     parser.add_argument("-custom_start_date",
@@ -106,6 +106,11 @@ def get_args():
                         dest="custom_end_date",
                         default=np.nan,
                         help="Custom end date for anonymization")
+
+    parser.add_argument("-api_sleep_buffer",
+                        dest="api_sleep_buffer",
+                        default="False",
+                        help="Adds a random 1-30 second sleep buffer before getting metadata")
 
     args = parser.parse_args()
 
@@ -444,7 +449,8 @@ def pipeline_wrapper(userid,
                      test_set_days,
                      add_tier_prefix,
                      custom_start_date,
-                     custom_end_date):
+                     custom_end_date,
+                     api_sleep_buffer):
 
     ##################
     # PIPELINE START #
@@ -466,11 +472,14 @@ def pipeline_wrapper(userid,
     ################
 
     startTime = time.time()
+
     print(str(user_loc) + " sleeping and getting profile metadata...", end="")
-    # Sleep for 0-30 seconds before getting metadata
-    # This helps reduce the possibility of 504 timeouts
-    # from too many multiprocessing requests
-    time.sleep(np.random.randint(30))
+
+    if(api_sleep_buffer):
+      # Sleep for 0-30 seconds before getting metadata
+      # This helps reduce the possibility of 504 timeouts
+      # from too many multiprocessing requests
+      time.sleep(np.random.randint(30))
     metadata = get_single_donor_metadata.get_and_return_metadata(
         donor_group=donor_group,
         userid_of_shared_user=userid
@@ -897,6 +906,7 @@ if __name__ == "__main__":
                      pipeline_args.data_path,
                      pipeline_args.dataset_type,
                      int(pipeline_args.test_set_days),
-                     pipeline_args.add_tier_prefix,
+                     eval(pipeline_args.add_tier_prefix),
                      pipeline_args.custom_start_date,
-                     pipeline_args.custom_end_date)
+                     pipeline_args.custom_end_date,
+                     eval(pipeline_args.api_sleep_buffer))

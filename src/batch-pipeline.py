@@ -70,7 +70,8 @@ def run_pipeline(userid,
              "-dataset_type", dataset_type,
              "-test_set_days", str(test_set_days),
              "-custom_start_date", "2019-05-01",
-             "-custom_end_date", "2019-08-01"
+             "-custom_end_date", "2019-08-01",
+             "-api_sleep_buffer", "True"
          ],
         stdout=sub.PIPE,
         stderr=sub.PIPE
