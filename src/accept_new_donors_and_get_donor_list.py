@@ -217,8 +217,11 @@ def accept_and_get_list():
         'df54366b1c', 'e67aa71493', 'f2103a44d5', 'dccc3baf63'
     ]
 
-    ignore_id_list = pd.read_csv('ignore-id-list.csv', low_memory=False)
-    accounts_to_ignore = accounts_to_ignore + list(ignore_id_list['ignore_id'])
+    try:
+        ignore_id_list = pd.read_csv('ignore-id-list.csv', low_memory=False)
+        accounts_to_ignore = accounts_to_ignore + list(ignore_id_list['ignore_id'])
+    except:
+        print("No file ignore_id_list found.")
 
     for donor_group in donor_groups:
         if donor_group == "bigdata":
