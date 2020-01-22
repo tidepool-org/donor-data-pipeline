@@ -67,12 +67,12 @@ def get_args():
 
     parser.add_argument("-import_data",
                         dest="importExistingData",
-                        default=False,
+                        default="False",
                         help="Whether or not to import existing data")
 
     parser.add_argument("-save_new_data",
                         dest="saveDataDownload",
-                        default=False,
+                        default="False",
                         help="Whether or not to save newly downloaded data")
 
     parser.add_argument("-data_path",
