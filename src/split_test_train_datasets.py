@@ -20,8 +20,6 @@ import numpy as np
 import os
 import time
 from datetime import timedelta
-import environmentalVariables
-import hashlib
 import traceback
 import sys
 
