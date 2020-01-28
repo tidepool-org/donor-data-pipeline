@@ -20,11 +20,11 @@ This pipeline includes code which:
 
 To learn more about the donated data, see Tidepool's list of [supported devices](https://www.tidepool.org/users/devices) and the [data model for diabetes device data types](http://developer.tidepool.org/data-model/device-data/types/).
 
-### How do I use it?
+### Getting Started
 
 ------
 
-We will have a dedicated section with setup instructions and examples in this repository soon. For now you can check out the 'Getting Started' section of our [data-analytics repo](https://github.com/tidepool-org/data-analytics/).
+Check out the [src README](./src) and Quick Start Guide to get orientated with the pipeline code and how to use it. 
 
 ### Getting Help
 
@@ -37,5 +37,5 @@ Tidepool has a [Public Slack](https://tidepoolorg.slack.com/) and you can reach 
 ------
 
 - [x] Add README
-- [ ] Migrate existing code from bigdata-processing-pipeline project in tidepool-org/data-analytics
-- [ ] Add 'Getting Started' folder with a guided example
+- [x] Migrate existing code from bigdata-processing-pipeline project in tidepool-org/data-analytics
+- [x] Update new Getting Started README link
