@@ -16,7 +16,7 @@ Below you will find:
 
 ------
 
-Below is a list of all modules used in the main pipeline in order of appearance.
+Below is a list of all modules used in the main pipeline in order of execution.
 
 * **donor_data_pipeline.py**
   * This is the main wrapper for the entire donor data pipeline. All other modules are imported and executed from here. It acts as a data manager, feeding data into and out of each module.
@@ -47,18 +47,20 @@ Below is a list of all modules used in the main pipeline in order of appearance.
 
 ------
 
-The Tidepool Data Science Team uses the donor data pipeline and its modules to process information across many donor datasets. Batch processing tools are used to do this efficiently often with asynchronous parallelization. Below are some descriptions of the different tools you will find among the source code. Note that all batch filesnames are dash-separated unlike the underscore_separated importable modules.
+The Tidepool Data Science Team uses the donor data pipeline and its modules to process information across many donor datasets. Batch processing tools are used to do this efficiently often with asynchronous parallelization. 
 
-* **batch-pipeline.py**
-  * Runs donor_data_pipeline.py and exports pipeline and datasets summaries across all donors processed
+Below are descriptions of the different tools in their typical order of execution. Note that all batch filesnames are dash-separated unlike the underscore_separated importable modules.
+
 * **batch-get-donor-data.py**
-  * Runs the get_single_tidepool_dataset.get_and_return_dataset() function to download all donor data from a chosen_donors_file.
+  * Runs the get_single_tidepool_dataset.get_and_return_dataset() function to download all donor data from a list of userids and their associated donor group accounts. This file can be created using accept_new_donors_and_get_donor_list.py.  
 * **batch-get-metadata.py**
-  * Runs get_single_donor_metadata.py on a donor list and combines all of their metadata into a single file.
-* **batch-get-unique-dataframes.py**
-  * Creates a summary of all unique value-lengths for every column in every dataset from a folder of datasets. Useful for getting an overview of every type of unique data type and format.
+  * Runs get_single_donor_metadata.py on a list of userids and their associated donor group accounts, then and combines all of their metadata into a single file.
 * **batch-vector-qualify.py**
-  * Runs the vector_qualify.get_vector_summary() function across a folder of datasets and creates a combined vector qualification .csv. Useful for finding and selecting donor datasets of specific sizes, quality, and data types.
+  - Runs the vector_qualify.get_vector_summary() function on a local folder of datasets and creates a combined vector qualification .csv. Useful for finding and selecting donor datasets of specific sizes, quality, and data types.
+* **batch-pipeline.py**
+  - Runs donor_data_pipeline.py and exports pipeline and datasets summaries across all donors processed. Requires output from the previous three batch processing scripts.
+* **batch-get-unique-dataframes.py**
+  * Creates a summary of all unique value-lengths for every column in every dataset from a folder of datasets. An optional but useful tool for getting an overview of every type of unique data type and format.
 
 ### Quick Start Guide
 
@@ -71,7 +73,7 @@ Here's a quick setup guide to get you started.
 The Donor Data Pipeline is run within an anaconda virtual environment. [Anaconda](https://www.anaconda.com/distribution/) or [Miniconda](https://docs.conda.io/en/latest/miniconda.html) (recommended) can be used to install the `conda` command line tool.
 
 1. In a teriminal, navigate to this repository's root folder where the `environmental.yml` file is located.
-2. Run `conda env create`. This will download all of the pipeline's package dependencies and install them in a virtual environment named **tbddp** (short for **T**idepool **B**ig **D**ata **D**onation **P**roject)
+2. Run `conda env create`. This will download all of the pipeline's package dependencies and install them in a virtual environment named **tbddp** (**T**idepool **B**ig **D**ata **D**onation **P**roject)
 3. Run `conda activate tidepool-analytics` to activate the environment and `conda deactivate` at anytime to exit. Note: You may optionally use the virtualenv `source` command instead of `conda` to actiavet and deactivate the environment.
 
 **Add Environmental File Dependency (Tidepool Employees Only)**
