@@ -913,7 +913,6 @@ if __name__ == "__main__":
     csv_dir = export_directory + "/PHI-csvData/"
     qa_dir = export_directory + "/QA/"
     qa_LTE_cDays_dir = qa_dir + "PHI-LTE-cDays/"
-    qa_qualifed_cDays_dir = qa_dir + "PHI-qualified-days/"
     qa_vector_qualified_cDays_dir = qa_dir + "PHI-vector-qualified-days/"
     qa_train_summary_viz_dir = qa_dir + "vizQA/train-dataset-summary-vizQA/"
     qa_test_summary_viz_dir = qa_dir + "vizQA/test-dataset-summary-vizQA/"
@@ -932,7 +931,6 @@ if __name__ == "__main__":
                    csv_dir,
                    qa_dir,
                    qa_LTE_cDays_dir,
-                   qa_qualifed_cDays_dir,
                    qa_vector_qualified_cDays_dir,
                    qa_train_summary_viz_dir,
                    qa_test_summary_viz_dir,
