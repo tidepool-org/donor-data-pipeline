@@ -18,9 +18,11 @@ import json
 import argparse
 import environmentalVariables
 
+
+# %% Functions
 def parse_args():
     # USER INPUTS (choices to be made in order to run the code)
-    codeDescription = "accepts new donors (shares) and return a list of userids"
+    codeDescription = "accepts new donors and return a list of userids"
     parser = argparse.ArgumentParser(description=codeDescription)
 
     parser.add_argument(
@@ -178,7 +180,7 @@ def accept_new_donors_and_get_donor_list(auth):
 
 
 # %% START OF CODE
-def accept_and_get_list():
+def accept_and_get_list(remove_duplicate_donors=True):
     args = parse_args()
 
     # create output folders
@@ -240,37 +242,99 @@ def accept_and_get_list():
         all_donors_df = pd.concat([all_donors_df, donors_df])
 
     all_donors_df.sort_values(by=['userID', 'donorGroup'], inplace=True)
-    unique_donors = all_donors_df.loc[~all_donors_df["userID"].duplicated()]
-    total_donors = len(set(unique_donors["userID"]) - set(accounts_to_ignore))
 
-    final_donor_list = pd.DataFrame(
-        list(set(unique_donors["userID"]) - set(accounts_to_ignore)),
-        columns=["userID"]
-    )
+    if remove_duplicate_donors is not True:
+        return all_donors_df
 
-    final_donor_list = pd.merge(
-        final_donor_list,
-        unique_donors,
-        how="left",
-        on="userID"
-    )
-
-    # polish up the final donor list
-    final_donor_list.sort_values(by="donorGroup", inplace=True)
-    final_donor_list.reset_index(drop=True, inplace=True)
-
-    if args.save_donor_list:
-        print("saving donor list ...\n")
-        final_donor_list.to_csv(uniqueDonorList_path)
     else:
-        print("donor list is NOT being saved ...\n")
+        unique_donors = \
+            all_donors_df.loc[
+                ~all_donors_df["userID"].duplicated()
+                ]
+        total_donors = \
+            len(
+                set(unique_donors["userID"]) - set(accounts_to_ignore)
+                )
 
-    print("There are %d total donors," % total_donors)
-    print("after removing donors that donated to more than 1 group,")
-    print("and after removing QA testing accounts.")
+        final_donor_list = pd.DataFrame(
+            list(set(unique_donors["userID"]) - set(accounts_to_ignore)),
+            columns=["userID"]
+        )
 
-    return final_donor_list
+        final_donor_list = pd.merge(
+            final_donor_list,
+            unique_donors,
+            how="left",
+            on="userID"
+        )
+
+        # polish up the final donor list
+        final_donor_list.sort_values(by="donorGroup", inplace=True)
+        final_donor_list.reset_index(drop=True, inplace=True)
+
+        if args.save_donor_list:
+            print("saving donor list ...\n")
+            final_donor_list.to_csv(uniqueDonorList_path)
+        else:
+            print("donor list is NOT being saved ...\n")
+
+        print("There are %d total donors," % total_donors)
+        print("after removing donors that donated to more than 1 group,")
+        print("and after removing QA testing accounts.")
+
+        return final_donor_list
 
 
+def get_donor_distributions():
+    """Calculates a % distribution of Tidepool's non-profit partners
+
+    10% of the proceeds from the Tidepool Big Data Donation Project are shared
+    with our non-profit partner organizations. Each organization receives a
+    weighted percentage based on the selection of Tidepool data donors.
+
+    Each donor gets a single weighted vote, but it can be split among multiple
+    organizations. If someone selects 3 organizations, each one will receive a
+    weight of 1/3. The percentage of the shared proceeds are calculated by
+    summing the total weighted votes in each organization and dividing by the
+    total number of donors.
+
+    For donors that did not choose any specific organization
+    (and just exists within the bigdata account), their vote is distributed
+    among all organizations.
+    """
+
+    all_donors_df = accept_and_get_list(remove_duplicate_donors=False)
+
+    # Diabetes Hands Foundation (DHF) merged with Beyond Type 1
+    all_donors_df["donorGroup"] = \
+        all_donors_df.donorGroup.str.replace("DHF", "BT1")
+
+    bigdata_donors = all_donors_df.loc[all_donors_df.donorGroup == "bigdata"]
+
+    other_donors = all_donors_df.loc[all_donors_df.donorGroup != "bigdata"]
+
+    other_donor_weights = \
+        pd.DataFrame(1/other_donors.userID.value_counts()).reset_index()
+    other_donor_weights.columns = ["userID", "weight"]
+
+    other_donors = pd.merge(other_donors,
+                            other_donor_weights,
+                            on="userID",
+                            how="left")
+
+    donor_group_weight_sum = other_donors.groupby("donorGroup").weight.sum()
+
+    # Add the distributed weight of donors that did not choose any organization
+    n_bigdata_only = len(set(bigdata_donors.userID) - set(other_donors.userID))
+    n_donor_groups = len(donor_group_weight_sum)
+    bigdata_only_weight = n_bigdata_only/n_donor_groups
+    donor_group_weight_sum = donor_group_weight_sum + bigdata_only_weight
+
+    distribution_df = donor_group_weight_sum/len(all_donors_df.userID.unique())
+
+    return distribution_df
+
+
+# %%
 if __name__ == "__main__":
     final_donor_list = accept_and_get_list()
