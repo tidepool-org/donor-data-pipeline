@@ -144,7 +144,7 @@ def accept_invite_api(headers, userid):
     else:
         nAccepted = 0
         print("Error with getting list of invitations " +
-            api_response.status_code
+            str(api_response.status_code)
         )
 
     return nAccepted
@@ -159,7 +159,7 @@ def get_donor_list_api(headers, userid):
     else:
         sys.exit(
             "Error with donor list api",
-            api_response.status_code
+            str(api_response.status_code)
         )
     df = pd.DataFrame(list(donors_list.keys()), columns=["userID"])
 
