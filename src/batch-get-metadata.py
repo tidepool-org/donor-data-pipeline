@@ -112,5 +112,5 @@ if __name__ == "__main__":
 # %%
     # Convert results into dataframe
     metadata_df = pd.concat(results_array, sort=False)
-    metadata_filename = "PHI-batch-get-metadata-" + today_timestamp + ".csv"
+    metadata_filename = "PHI-batch-metadata-" + today_timestamp + ".csv"
     metadata_df.to_csv(metadata_filename, index=False)

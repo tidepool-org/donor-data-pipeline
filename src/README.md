@@ -85,9 +85,18 @@ The donor data pipeline depends on a private `.env` environmental file to access
 1. In the terminal, navigate to the **src** directory
 2. Run `python donor_data_pipeline.py`
 3. When prompted, enter the user id of the Tidepool account you want to have processed
-   
+  
 
 Now just wait for the pipeline to finish processing and that's it! Your processed data will be located in a newly created pipeline export folder. See the next section for more details.
+
+**Batch Download Data**
+
+1. In the terminal, navigate to the **src** directory
+2. Run `python accept_new_donors_and_get_donor_list.py` - this creates the file: data/PHI-YYYY-MM-DD-donor-data/PHI-YYYY-MM-DD-uniqueDonorList.csv
+3. Open `batch-get-metadata.py` and insert the unique donor list file path into the `phi_donor_list` variable's read_csv function
+4. Run `python batch-get-metadata.py` - this creates the file `PHI-batch-metadata-YYYY-MM-DD.csv`
+5. Open `batch-get-donor-data.py` and insert the metadata filepath into the variable `chosen_donors_file`
+6. Run `python batch-get-donor-data.py` and wait for all data to be downloaded into the new folder PHI-YYYY-MM-DD-csvData. Data is saved in gzip compressed format by default.
 
 
 ### Pipeline Output
@@ -131,3 +140,4 @@ The folder structure, contents, and explanations of the pipeline output are as f
 - [ ] Add information on the different pipeline arguments
 - [ ] Add information on batch processing setup
 - [ ] Add section for expanding pipeline with new modules
+- [ ] Change batch data downloading to take in arguments instead of manually changing variables.

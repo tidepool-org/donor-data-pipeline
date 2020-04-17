@@ -87,7 +87,7 @@ if __name__ == "__main__":
     elapsed_time_message = "Downloaded " + str(len(phi_donor_list)) + "  datasets in: " + \
         str(elapsed_minutes) + " minutes\n"
     print(elapsed_time_message)
-    log_file = open('batch_get_donor_data_log.txt', 'a')
+    log_file = open('batch-get-donor-data-log.txt', 'a')
     log_file.write(str(elapsed_time_message)+"\n")
     log_file.close()
 
