@@ -54,7 +54,7 @@ def get_data_api(userid, startDate, endDate, headers):
     else:
         sys.exit(
             "ERROR in getting data between %s and %s" % (startDate, endDate),
-            api_response.status_code
+            str(api_response.status_code)
         )
 
     endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
