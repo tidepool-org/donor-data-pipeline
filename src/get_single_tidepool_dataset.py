@@ -73,7 +73,13 @@ def data_api_call(userid, startDate, endDate, headers):
 
     else:
         sys.exit(
-            "ERROR in getting data between %s and %s" % (startDate, endDate),
+            "ERROR in getting data for "
+            + str(userid),
+            "Between ",
+            + startDate,
+            " & ",
+            + endDate,
+            + "ERROR: ",
             str(api_response.status_code)
         )
 
