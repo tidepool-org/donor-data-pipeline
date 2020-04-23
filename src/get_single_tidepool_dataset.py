@@ -242,23 +242,33 @@ if __name__ == "__main__":
 
     data_args = get_args()
 
-    data = get_and_return_dataset(
-                donor_group=data_args.donor_group,
-                userid_of_shared_user=data_args.userid_of_shared_user,
-                session_token=data_args.session_token
-            )
+    try:
+        data = get_and_return_dataset(
+                    donor_group=data_args.donor_group,
+                    userid_of_shared_user=data_args.userid_of_shared_user,
+                    session_token=data_args.session_token
+                )
 
-    if len(data) > 0:
-        filename = (
-                data_args.export_dir
-                + "PHI-"
-                + data_args.userid_of_shared_user
-                + ".csv.gz"
-        )
-        data.reset_index(inplace=True, drop=True)
-        data.to_csv(filename, index=False, compression='gzip')
-    else:
-        # Append userid to list of empty datasets
-        empty_dataset_list = open('PHI-empty-accounts.txt', 'a')
-        empty_dataset_list.write(data_args.userid_of_shared_user + "\n")
-        empty_dataset_list.close()
+        if len(data) > 0:
+            filename = (
+                    data_args.export_dir
+                    + "PHI-"
+                    + data_args.userid_of_shared_user
+                    + ".csv.gz"
+            )
+            data.reset_index(inplace=True, drop=True)
+            data.to_csv(filename, index=False, compression='gzip')
+        else:
+            # Append userid to list of empty datasets
+            empty_dataset_list = open('PHI-empty-accounts.txt', 'a')
+            empty_dataset_list.write(data_args.userid_of_shared_user + "\n")
+            empty_dataset_list.close()
+
+    except Exception as e:
+        print("FAILED TO GET DATA FOR " + data_args.userid_of_shared_user)
+        print("~~~~~~~~~~~Exception Captured Below~~~~~~~~~~~~")
+        print(e)
+
+        failed_dataset_list = open('PHI-failed-accounts.txt', 'a')
+        failed_dataset_list.write(data_args.userid_of_shared_user + "\n")
+        failed_dataset_list.close()
