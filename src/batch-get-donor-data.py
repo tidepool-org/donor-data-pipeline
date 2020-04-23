@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
     pool_array = [pool.apply_async(
             download_data,
-            args=[phi_donor_list.loc[user_loc, 'userid'],
+            args=[phi_donor_list.loc[user_loc, 'userID'],
                   phi_donor_list.loc[user_loc, 'donorGroup'],
                   user_loc,
                   csv_dir
