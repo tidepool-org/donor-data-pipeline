@@ -265,9 +265,10 @@ if __name__ == "__main__":
             empty_dataset_list.close()
 
     except Exception as e:
-        print("FAILED TO GET DATA FOR " + data_args.userid_of_shared_user)
         print("~~~~~~~~~~~Exception Captured Below~~~~~~~~~~~~")
+        print("FAILED TO GET DATA FOR " + data_args.userid_of_shared_user)
         print(e)
+        print("\n")
 
         failed_dataset_list = open('PHI-failed-accounts.txt', 'a')
         failed_dataset_list.write(data_args.userid_of_shared_user + "\n")
