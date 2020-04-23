@@ -63,6 +63,12 @@ if __name__ == "__main__":
     if not os.path.exists(csv_dir):
         os.makedirs(csv_dir)
 
+    file_list = os.listdir(csv_dir)
+    userids = pd.Series(file_list).apply(lambda x: x[4:-7])
+    # Skip already downloaded metadata files
+    keep_file_bool = ~phi_donor_list.userID.isin(userids)
+    phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
+    print("Retrieving " + str(len(phi_donor_list)) + " data files.")
     # %% Start Pipeline
 
     start_time = time.time()
