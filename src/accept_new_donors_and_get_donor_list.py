@@ -274,7 +274,7 @@ def accept_and_get_list(remove_duplicate_donors=True):
 
         if args.save_donor_list:
             print("saving donor list ...\n")
-            final_donor_list.to_csv(uniqueDonorList_path)
+            final_donor_list.to_csv(uniqueDonorList_path, index=False)
         else:
             print("donor list is NOT being saved ...\n")
 
