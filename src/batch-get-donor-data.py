@@ -15,12 +15,14 @@ import time
 from multiprocessing import Pool, cpu_count, get_context
 import traceback
 import sys
-#%%
+import subprocess as sub
 
-def download_data(userid, donor_group, user_loc, csv_dir):
-    if(os.path.exists(csv_dir + "PHI-" + userid + ".csv.gz")):
-        print(str(user_loc) + " ALREADY DOWNLOADED")
-        return [userid, "ALREADY DOWNLOADED"]
+
+# %%
+def download_data(userid, donor_group, user_loc, export_dir, xtoken_dict):
+
+    # Add a 0.1s sleep buffer
+    time.sleep(0.1)
 
     print(str(user_loc) + " STARTING DOWNLOAD")
     if((user_loc % 100 == 0) & (user_loc > 99)):
@@ -34,11 +36,12 @@ def download_data(userid, donor_group, user_loc, csv_dir):
     try:
         data = get_single_tidepool_dataset.get_and_return_dataset(
                 donor_group=donor_group,
-                userid_of_shared_user=userid
+                userid_of_shared_user=userid,
+                session_token=xtoken_dict.get(donor_group)
             )
 
         if len(data) > 0:
-            filename = csv_dir + "PHI-" + userid + ".csv.gz"
+            filename = export_dir + "PHI-" + userid + ".csv.gz"
             data.to_csv(filename, index=False, compression='gzip')
             status = "Successfully Downloaded"
 
@@ -46,42 +49,123 @@ def download_data(userid, donor_group, user_loc, csv_dir):
             status = "No Data"
 
     except Exception as e:
-        status = "DOWNLOAD FAILED!" + str(e)
-        print(status)
-    print(str(user_loc) + " DOWNLOAD SUCCESSFUL!")
+        status = "DOWNLOAD FAILED! " + str(e)
+
+    print(status)
+
     return [userid, status]
+
+
+def download_data_subprocess(userid,
+                             donor_group,
+                             user_loc,
+                             export_dir,
+                             xtoken_dict):
+
+    # Add a 0.1s sleep buffer
+    time.sleep(0.1)
+
+    # print(str(user_loc) + " STARTING DOWNLOAD")
+    if((user_loc % 100 == 0) & (user_loc > 99)):
+        print(user_loc)
+        log_file = open('batch_get_donor_data_log.txt', 'a')
+        log_file.write(str(user_loc)+"\n")
+        log_file.close()
+
+    # Set the python unbuffered state to 1 to allow stdout buffer access
+    # This allows continuous reading of subprocess output
+    os.environ["PYTHONUNBUFFERED"] = "1"
+    p = sub.Popen(
+        [
+             "python", "./get_single_tidepool_dataset.py",
+             "-donor_group", donor_group,
+             "-userid_of_shared_user", userid,
+             "-session_token", xtoken_dict.get(donor_group),
+             "-export_dir", export_dir
+         ],
+        stdout=sub.PIPE,
+        stderr=sub.PIPE
+    )
+
+    # Continuous write out stdout output
+    # for line in iter(p.stdout.readline, b''):
+    #    sys.stdout.write(line.decode(sys.stdout.encoding))
+    for line in iter(p.stdout.readline, b''):
+        sys.stdout.write(line.decode("utf-8"))
+
+    output, errors = p.communicate()
+    output = output.decode("utf-8")
+    errors = errors.decode("utf-8")
+
+    if errors != '':
+        print(errors)
+
+    return
+
+
+def create_xtokens_dict(phi_donor_list):
+
+    unique_donor_groups = list(phi_donor_list.donorGroup.unique())
+
+    xtoken_dict = {}
+
+    for donor_group in unique_donor_groups:
+        auth = get_single_tidepool_dataset.get_donor_group_auth(donor_group)
+        xtoken, _ = get_single_tidepool_dataset.login_and_get_xtoken(auth)
+        xtoken_dict.update({donor_group: xtoken})
+
+    return xtoken_dict
+
+
+def session_logout(phi_donor_list):
+    unique_donor_groups = list(phi_donor_list.donorGroup.unique())
+
+    for donor_group in unique_donor_groups:
+        auth = get_single_tidepool_dataset.get_donor_group_auth(donor_group)
+        get_single_tidepool_dataset.logout(auth)
+
+    return
 
 
 # %%
 if __name__ == "__main__":
-    chosen_donors_file = "PHI-all-qualify-stats-and-metadata-2019-11-21.csv"
+    chosen_donors_file = \
+        "../data/PHI-2020-04-17-donor-data/PHI-2020-04-17-uniqueDonorList.csv"
     donor_list = pd.read_csv(chosen_donors_file, low_memory=False)
-    phi_donor_list=donor_list.copy()
+    phi_donor_list = donor_list.copy()
     today_timestamp = dt.datetime.now().strftime("%Y-%m-%d")
-    csv_dir = "PHI-" + today_timestamp + "-csvData/"
+    export_dir = "PHI-" + today_timestamp + "-csvData/"
 
-    if not os.path.exists(csv_dir):
-        os.makedirs(csv_dir)
+    phi_donor_list = phi_donor_list.loc[:3]
 
-    file_list = os.listdir(csv_dir)
+    if not os.path.exists(export_dir):
+        os.makedirs(export_dir)
+
+    file_list = os.listdir(export_dir)
     userids = pd.Series(file_list).apply(lambda x: x[4:-7])
+
     # Skip already downloaded metadata files
     keep_file_bool = ~phi_donor_list.userID.isin(userids)
     phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
-    print("Retrieving " + str(len(phi_donor_list)) + " data files.")
+
+    # Create API xtokens for each donor group
+    xtoken_dict = create_xtokens_dict(phi_donor_list)
+
     # %% Start Pipeline
 
+    print("Retrieving " + str(len(phi_donor_list)) + " data files.")
     start_time = time.time()
 
     # Startup CPU multiprocessing pool
     pool = Pool(int(cpu_count()))
 
     pool_array = [pool.apply_async(
-            download_data,
+            download_data_subprocess,
             args=[phi_donor_list.loc[user_loc, 'userID'],
                   phi_donor_list.loc[user_loc, 'donorGroup'],
                   user_loc,
-                  csv_dir
+                  export_dir,
+                  xtoken_dict
                   ]
             ) for user_loc in range(len(phi_donor_list))]
 
@@ -90,33 +174,38 @@ if __name__ == "__main__":
 
     end_time = time.time()
     elapsed_minutes = (end_time - start_time)/60
-    elapsed_time_message = "Downloaded " + str(len(phi_donor_list)) + "  datasets in: " + \
-        str(elapsed_minutes) + " minutes\n"
+    elapsed_time_message = (
+            "Finished downloading datasets in: "
+            + str(elapsed_minutes)
+            + " minutes\n"
+    )
     print(elapsed_time_message)
-    log_file = open('batch-get-donor-data-log.txt', 'a')
+    log_file = open('batch_get_donor_data_log.txt', 'a')
     log_file.write(str(elapsed_time_message)+"\n")
     log_file.close()
 
-    # %% Append results of each pool into an array
+    # %% Logout of each session and delete tokens
+    session_logout(phi_donor_list)
 
-    results_array = []
-
-    for result_loc in range(len(pool_array)):
-        try:
-            results_array.append(pool_array[result_loc].get())
-        except Exception as e:
-            print('Failed to get results! ' + str(e))
-            exception_text = traceback.format_exception(*sys.exc_info())
-            print('\nException Text:\n')
-            for text_string in exception_text:
-                print(text_string)
-
-# %%
-    # Convert results into dataframe
-    output_results = pd.DataFrame(results_array)
-    output_results.columns = ["userid", "download_status"]
-    output_filename = \
-        'PHI-batch-get-donor-data-results-' + \
-        today_timestamp + \
-        '.csv'
-    output_results.to_csv(output_filename, index=False)
+#    # %% Append results of each pool into an array
+#
+#    results_array = []
+#
+#    for result_loc in range(len(pool_array)):
+#        try:
+#            results_array.append(pool_array[result_loc].get())
+#        except Exception as e:
+#            print('Failed to get results! ' + str(e))
+#            exception_text = traceback.format_exception(*sys.exc_info())
+#            print('\nException Text:\n')
+#            for text_string in exception_text:
+#                print(text_string)
+#
+#    # %% Convert results into dataframe and save
+#    output_results = pd.DataFrame(results_array)
+#    output_results.columns = ["userid", "download_status"]
+#    output_filename = \
+#        'PHI-batch-get-donor-data-results-' + \
+#        today_timestamp + \
+#        '.csv'
+#    output_results.to_csv(output_filename, index=False)

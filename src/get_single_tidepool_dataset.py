@@ -16,22 +16,42 @@ import sys
 import getpass
 import requests
 import json
-import pdb
-import argparse
 import environmentalVariables
+import argparse
+
 
 # %% FUNCTIONS
-def make_folder_if_doesnt_exist(folder_paths):
-    ''' function requires a single path or a list of paths'''
-    if not isinstance(folder_paths, list):
-        folder_paths = [folder_paths]
-    for folder_path in folder_paths:
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
-    return
+def get_args():
+    codeDescription = "Download a single Tidepool Dataset"
+
+    parser = argparse.ArgumentParser(description=codeDescription)
+
+    parser.add_argument("-userid_of_shared_user",
+                        dest="userid_of_shared_user",
+                        default=np.nan,
+                        help="Tidepool userid to download")
+
+    parser.add_argument("-donor_group",
+                        dest="donor_group",
+                        default=np.nan,
+                        help="Tidepool donor_group to download data from")
+
+    parser.add_argument("-session_token",
+                        dest="session_token",
+                        default=np.nan,
+                        help="The session xtoken used for downloading data")
+
+    parser.add_argument("-export_dir",
+                        dest="export_dir",
+                        default="",
+                        help="The session xtoken used for downloading data")
+
+    args = parser.parse_args()
+
+    return args
 
 
-def get_data_api(userid, startDate, endDate, headers):
+def data_api_call(userid, startDate, endDate, headers):
 
     startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
     endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
@@ -49,7 +69,7 @@ def get_data_api(userid, startDate, endDate, headers):
     if(api_response.ok):
         json_data = json.loads(api_response.content.decode())
         df = pd.DataFrame(json_data)
-        #print("getting data between %s and %s" % (startDate, endDate))
+        # print("getting data between %s and %s" % (startDate, endDate))
 
     else:
         sys.exit(
@@ -62,6 +82,50 @@ def get_data_api(userid, startDate, endDate, headers):
     return df, endDate
 
 
+def get_donor_group_auth(donor_group):
+    if donor_group == "bigdata":
+        dg = ""
+    else:
+        dg = donor_group
+
+    auth = environmentalVariables.get_environmental_variables(dg)
+
+    return auth
+
+
+def login_and_get_xtoken(auth):
+    api_call = "https://api.tidepool.org/auth/login"
+    api_response = requests.post(api_call, auth=auth)
+    if(api_response.ok):
+        xtoken = api_response.headers["x-tidepool-session-token"]
+        userid_master = json.loads(api_response.content.decode())["userid"]
+        print("successfully established session for", auth[0])
+    else:
+        sys.exit("Error with "
+                 + auth[0]
+                 + ":"
+                 + str(api_response.status_code))
+
+    return xtoken, userid_master
+
+
+def logout(auth):
+    api_call = "https://api.tidepool.org/auth/logout"
+    api_response = requests.post(api_call, auth=auth)
+
+    if(api_response.ok):
+        print("successfully logged out of", auth[0])
+        pass
+
+    else:
+        sys.exit(
+            "Error with logging out for " +
+            auth[0] + ":" + str(api_response.status_code)
+        )
+
+    return
+
+
 def get_data(
     weeks_of_data=10*52,
     donor_group=np.nan,
@@ -69,15 +133,10 @@ def get_data(
     auth=np.nan,
     email=np.nan,
     password=np.nan,
+    session_token=np.nan
 ):
-    # login
     if pd.notnull(donor_group):
-        if donor_group == "bigdata":
-            dg = ""
-        else:
-            dg = donor_group
-
-        auth = environmentalVariables.get_environmental_variables(dg)
+        auth = get_donor_group_auth(donor_group)
 
     if pd.isnull(auth):
         if pd.isnull(email):
@@ -88,20 +147,20 @@ def get_data(
 
         auth = (email, password)
 
-    api_call = "https://api.tidepool.org/auth/login"
-    api_response = requests.post(api_call, auth=auth)
-    if(api_response.ok):
-        xtoken = api_response.headers["x-tidepool-session-token"]
-        userid_master = json.loads(api_response.content.decode())["userid"]
-        headers = {
+    if pd.isnull(session_token):
+        # login to get xtoken
+        xtoken, userid_master = login_and_get_xtoken(auth)
+
+        if pd.isnull(userid_of_shared_user):
+            userid_of_shared_user = userid_master
+
+    else:
+        xtoken = session_token
+
+    headers = {
             "x-tidepool-session-token": xtoken,
             "Content-Type": "application/json"
         }
-    else:
-        sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
-
-    if pd.isnull(userid_of_shared_user):
-        userid_of_shared_user = userid_master
 
     df = pd.DataFrame()
     endDate = pd.datetime.now() + pd.Timedelta(1, unit="d")
@@ -115,7 +174,7 @@ def get_data(
                 endDate.month,
                 endDate.day
             ) + pd.Timedelta(1, unit="d")
-            year_df, endDate = get_data_api(
+            year_df, endDate = data_api_call(
                 userid_of_shared_user,
                 startDate,
                 endDate,
@@ -133,26 +192,15 @@ def get_data(
             pd.to_datetime(endDate) - pd.Timedelta(weeks_of_data*7, "d")
         )
 
-        df, _ = get_data_api(
+        df, _ = data_api_call(
             userid_of_shared_user,
             startDate,
             endDate,
             headers
             )
 
-    # logout
-    api_call = "https://api.tidepool.org/auth/logout"
-    api_response = requests.post(api_call, auth=auth)
-
-    if(api_response.ok):
-        pass
-        #print("successfully logged out of", auth[0])
-
-    else:
-        sys.exit(
-            "Error with logging out for " +
-            auth[0] + ":" + str(api_response.status_code)
-        )
+    if pd.isnull(session_token):
+        logout(auth)
 
     return df, userid_of_shared_user
 
@@ -165,7 +213,8 @@ def get_and_return_dataset(
     userid_of_shared_user=np.nan,
     auth=np.nan,
     email=np.nan,
-    password=np.nan
+    password=np.nan,
+    session_token=np.nan
 ):
 
     # get dataset
@@ -175,7 +224,30 @@ def get_and_return_dataset(
         userid_of_shared_user=userid_of_shared_user,
         auth=auth,
         email=email,
-        password=password
+        password=password,
+        session_token=session_token
     )
 
     return data
+
+
+# %%
+if __name__ == "__main__":
+
+    data_args = get_args()
+
+    data = get_and_return_dataset(
+                donor_group=data_args.donor_group,
+                userid_of_shared_user=data_args.userid_of_shared_user,
+                session_token=data_args.session_token
+            )
+
+    if len(data) > 0:
+        filename = (
+                data_args.export_dir
+                + "PHI-"
+                + data_args.userid_of_shared_user
+                + ".csv.gz"
+        )
+        data.reset_index(inplace=True, drop=True)
+        data.to_csv(filename, index=False, compression='gzip')

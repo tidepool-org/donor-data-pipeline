@@ -25,7 +25,7 @@ import time
 
 # %% Parse Argument Function
 def get_args():
-    codeDescription = "A complete wrapper for donor data pipeline functions"
+    codeDescription = "Download a single Tidepool Donor Metadata File"
 
     parser = argparse.ArgumentParser(description=codeDescription)
 
