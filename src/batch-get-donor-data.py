@@ -136,17 +136,26 @@ if __name__ == "__main__":
     today_timestamp = dt.datetime.now().strftime("%Y-%m-%d")
     export_dir = "PHI-" + today_timestamp + "-csvData/"
 
-    phi_donor_list = phi_donor_list.loc[:3]
-
     if not os.path.exists(export_dir):
         os.makedirs(export_dir)
 
+    # Skip already downloaded data and accounts with missing data
     file_list = os.listdir(export_dir)
-    userids = pd.Series(file_list).apply(lambda x: x[4:-7])
+    downloaded_files = pd.Series(file_list).apply(lambda x: x[4:-7])
+    not_downloaded_accounts = ~phi_donor_list.userID.isin(downloaded_files)
 
-    # Skip already downloaded metadata files
-    keep_file_bool = ~phi_donor_list.userID.isin(userids)
+    # Get accounts known to be missing data
+    if os.path.exists('PHI-empty-accounts.txt'):
+        empty_account_list = open('PHI-empty-accounts.txt', 'r')
+        empty_accounts = empty_account_list.read()
+        empty_accounts = pd.Series(empty_accounts.split('\n')[:-1])
+        not_empty_accounts = ~phi_donor_list.userID.isin(empty_accounts)
+    else:
+        not_empty_accounts = True
+
+    keep_file_bool = not_downloaded_accounts & not_empty_accounts
     phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
+    phi_donor_list = phi_donor_list.loc[:3]
 
     # Create API xtokens for each donor group
     xtoken_dict = create_xtokens_dict(phi_donor_list)
@@ -174,8 +183,20 @@ if __name__ == "__main__":
 
     end_time = time.time()
     elapsed_minutes = (end_time - start_time)/60
+
+    new_file_list = os.listdir(export_dir)
+    new_file_list = [file for file in new_file_list if 'csv' in file]
+    new_downloaded_files = pd.Series(new_file_list).apply(lambda x: x[4:-7])
+    successful_download_count = (
+            sum(~new_downloaded_files.isin(downloaded_files))
+    )
+
     elapsed_time_message = (
-            "Finished downloading datasets in: "
+            "Finished downloading "
+            + str(successful_download_count)
+            + " / "
+            + str(len(phi_donor_list))
+            + " datasets in: "
             + str(elapsed_minutes)
             + " minutes\n"
     )

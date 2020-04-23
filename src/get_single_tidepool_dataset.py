@@ -251,3 +251,8 @@ if __name__ == "__main__":
         )
         data.reset_index(inplace=True, drop=True)
         data.to_csv(filename, index=False, compression='gzip')
+    else:
+        # Append userid to list of empty datasets
+        empty_dataset_list = open('PHI-empty-accounts.txt', 'a')
+        empty_dataset_list.write(data_args.userid_of_shared_user + "\n")
+        empty_dataset_list.close()
