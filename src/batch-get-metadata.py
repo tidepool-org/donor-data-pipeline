@@ -59,6 +59,12 @@ if __name__ == "__main__":
 
     if not os.path.exists(export_directory):
         os.makedirs(export_directory)
+
+    file_list = os.listdir(export_directory)
+    userids = pd.Series(file_list).apply(lambda x: x[4:-4])
+    # Skip already downloaded metadata files
+    keep_file_bool = ~phi_donor_list.userID.isin(userids)
+    phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
     # %% Start Pipeline
 
     start_time = time.time()
