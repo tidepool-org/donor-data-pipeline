@@ -74,13 +74,13 @@ def data_api_call(userid, startDate, endDate, headers):
     else:
         sys.exit(
             "ERROR in getting data for "
-            + str(userid),
-            "Between ",
-            + startDate,
-            " & ",
-            + endDate,
-            + "ERROR: ",
-            str(api_response.status_code)
+            + str(userid)
+            + " Between "
+            + str(startDate)
+            + " & "
+            + str(endDate)
+            + " API RESPONSE: "
+            + str(api_response.status_code)
         )
 
     endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
