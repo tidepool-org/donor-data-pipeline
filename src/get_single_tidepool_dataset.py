@@ -9,15 +9,14 @@ to get the most recent donor list
 
 # %% REQUIRED LIBRARIES
 import pandas as pd
-import datetime as dt
 import numpy as np
-import os
 import sys
 import getpass
 import requests
 import json
-import environmentalVariables
 import argparse
+import datetime
+import environmentalVariables
 
 
 # %% FUNCTIONS
@@ -30,6 +29,16 @@ def get_args():
                         dest="userid_of_shared_user",
                         default=np.nan,
                         help="Tidepool userid to download")
+
+    parser.add_argument("-max_chunk_size",
+                        dest="max_chunk_size",
+                        default=182,
+                        help="Maximum number of days in each API data request")
+
+    parser.add_argument("-weeks_of_data",
+                        dest="weeks_of_data",
+                        default=52*10,
+                        help="Number of weeks of data to collect")
 
     parser.add_argument("-donor_group",
                         dest="donor_group",
@@ -44,51 +53,20 @@ def get_args():
     parser.add_argument("-export_dir",
                         dest="export_dir",
                         default="",
-                        help="The session xtoken used for downloading data")
+                        help="The export directory to save data to")
+
+    parser.add_argument("-return_raw_json",
+                        dest="return_raw_json",
+                        default=False,
+                        help="Return raw JSON, otherwise returns a dataframe.")
 
     args = parser.parse_args()
 
     return args
 
 
-def data_api_call(userid, startDate, endDate, headers):
-
-    startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
-    endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
-
-    api_call = (
-        "https://api.tidepool.org/data/" + userid + "?" +
-        "endDate=" + endDate + "&" +
-        "startDate=" + startDate + "&" +
-        "dexcom=true" + "&" +
-        "medtronic=true" + "&" +
-        "carelink=true"
-    )
-
-    api_response = requests.get(api_call, headers=headers)
-    if(api_response.ok):
-        json_data = json.loads(api_response.content.decode())
-        df = pd.DataFrame(json_data)
-        # print("getting data between %s and %s" % (startDate, endDate))
-
-    else:
-        sys.exit(
-            "ERROR in getting data for "
-            + str(userid)
-            + " Between "
-            + str(startDate)
-            + " & "
-            + str(endDate)
-            + " API RESPONSE: "
-            + str(api_response.status_code)
-        )
-
-    endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
-
-    return df, endDate
-
-
 def get_donor_group_auth(donor_group):
+
     if donor_group == "bigdata":
         dg = ""
     else:
@@ -115,6 +93,126 @@ def login_and_get_xtoken(auth):
     return xtoken, userid_master
 
 
+def find_data_start_year(userid, headers, start_year=np.nan):
+
+    dates = pd.date_range('2010-01-01', end='today', freq='AS-JAN')
+    date_strings = list(dates.strftime('%Y-%m-%d'))
+    today_timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+    date_strings.append(today_timestamp)
+
+    for date_loc in range(len(date_strings)):
+
+        date = date_strings[date_loc]
+
+        startDate = date + "T00:00:00.000Z"
+        endDate = date + "T23:59:59.999Z"
+
+        api_call = (
+            "https://api.tidepool.org/data/" + userid + "?" +
+            "endDate=" + endDate + "&" +
+            "startDate=" + startDate + "&" +
+            "dexcom=true" + "&" +
+            "medtronic=true" + "&" +
+            "carelink=true"
+        )
+        api_response = requests.get(api_call, headers=headers)
+        if(api_response.ok):
+            json_data = json.loads(api_response.content.decode())
+
+            if(len(json_data) > 0):
+                # print(date + " has data!")
+                # Data exists somewhere between the current and previous dates
+                # Set start date to previous date
+                start_year = date_strings[max(0, date_loc-1)]
+                break
+
+        else:
+            sys.exit(
+                "ERROR in checking first record data for "
+                + str(userid)
+                + " API RESPONSE: "
+                + str(api_response.status_code)
+            )
+
+    return start_year
+
+
+def check_dataset_for_uploads(userid, headers):
+
+    # Get maximum of 10 years of data
+    max_endDate = datetime.datetime.utcnow()
+    max_startDate = max_endDate - pd.Timedelta(365*10, unit="d")
+
+    max_startDate = max_startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
+    max_endDate = max_endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
+
+    api_call = (
+        "https://api.tidepool.org/data/" + userid + "?" +
+        "endDate=" + max_endDate + "&" +
+        "startDate=" + max_startDate + "&" +
+        "dexcom=true" + "&" +
+        "medtronic=true" + "&" +
+        "carelink=true" + "&" +
+        "type=upload"
+    )
+
+    api_response = requests.get(api_call, headers=headers)
+
+    if(api_response.ok):
+        upload_data = json.loads(api_response.content.decode())
+
+        if(len(upload_data) > 0):
+            uploads_exist = True
+        else:
+            print("No uploads exist in account!")
+            uploads_exist = False
+
+    else:
+        sys.exit(
+            "ERROR in getting data for "
+            + str(userid)
+            + " Between "
+            + str(max_startDate)
+            + " & "
+            + str(max_endDate)
+            + " API RESPONSE: "
+            + str(api_response.status_code)
+        )
+
+    return uploads_exist
+
+
+def data_api_call(userid, startDate, endDate, headers):
+
+    api_call = (
+        "https://api.tidepool.org/data/" + userid + "?" +
+        "endDate=" + endDate + "&" +
+        "startDate=" + startDate + "&" +
+        "dexcom=true" + "&" +
+        "medtronic=true" + "&" +
+        "carelink=true"
+    )
+
+    api_response = requests.get(api_call, headers=headers)
+
+    if(api_response.ok):
+        json_data = json.loads(api_response.content.decode())
+
+    else:
+        sys.exit(
+            "ERROR in getting data for "
+            + str(userid)
+            + " Between "
+            + str(startDate)
+            + " & "
+            + str(endDate)
+            + " API RESPONSE: "
+            + str(api_response.status_code)
+        )
+
+    return json_data
+
+
 def logout(auth):
     api_call = "https://api.tidepool.org/auth/logout"
     api_response = requests.post(api_call, auth=auth)
@@ -132,15 +230,19 @@ def logout(auth):
     return
 
 
-def get_data(
+# %% Main Function Call
+def get_dataset(
     weeks_of_data=10*52,
+    max_chunk_size=182,
     donor_group=np.nan,
     userid_of_shared_user=np.nan,
     auth=np.nan,
     email=np.nan,
     password=np.nan,
-    session_token=np.nan
+    session_token=np.nan,
+    return_raw_json=False,
 ):
+
     if pd.notnull(donor_group):
         auth = get_donor_group_auth(donor_group)
 
@@ -168,73 +270,65 @@ def get_data(
             "Content-Type": "application/json"
         }
 
-    df = pd.DataFrame()
-    endDate = pd.datetime.now() + pd.Timedelta(1, unit="d")
+    data = []
 
-    if weeks_of_data > 52:
-        years_of_data = int(np.floor(weeks_of_data/52))
+    # Check if dataset is contains data or is empty
+    uploads_exist = check_dataset_for_uploads(userid_of_shared_user, headers)
 
-        for years in range(0, years_of_data + 1):
-            startDate = pd.datetime(
-                endDate.year - 1,
-                endDate.month,
-                endDate.day
-            ) + pd.Timedelta(1, unit="d")
-            year_df, endDate = data_api_call(
-                userid_of_shared_user,
-                startDate,
-                endDate,
-                headers
-            )
+    if uploads_exist:
 
-            df = pd.concat(
-                [df, year_df],
-                ignore_index=True,
-                sort=False
-            )
+        data_start_year = find_data_start_year(userid_of_shared_user, headers)
+        days_since_data_start = (
+                datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
+        ).days + 1
+        days_to_download = weeks_of_data * 7
 
-    else:
-        startDate = (
-            pd.to_datetime(endDate) - pd.Timedelta(weeks_of_data*7, "d")
-        )
+        if days_since_data_start < days_to_download:
+            days_to_download = days_since_data_start
 
-        df, _ = data_api_call(
-            userid_of_shared_user,
-            startDate,
-            endDate,
-            headers
-            )
+        if days_to_download < max_chunk_size:
+            days_per_chunk = days_to_download
+        else:
+            days_per_chunk = max_chunk_size
+
+        total_chunks = int(np.ceil(days_to_download/days_per_chunk))
+
+        print("Downloading "
+              + str(days_to_download)
+              + " days of data in "
+              + str(days_per_chunk)
+              + "-day chunks...",
+              end="")
+
+        endDate = datetime.datetime.utcnow()
+        startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
+
+        for chunk in range(total_chunks):
+
+            startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
+            endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
+
+            json_chunk = data_api_call(
+                    userid_of_shared_user,
+                    startDate,
+                    endDate,
+                    headers
+                )
+
+            data += json_chunk
+
+            endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
+            startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
+
+        print("done.")
+
+    if not return_raw_json:
+        data = pd.DataFrame(data)
 
     if pd.isnull(session_token):
         logout(auth)
 
-    return df, userid_of_shared_user
-
-
-# %% START OF CODE
-def get_and_return_dataset(
-    date_stamp=dt.datetime.now().strftime("%Y-%m-%d"),
-    weeks_of_data=52*10,
-    donor_group=np.nan,
-    userid_of_shared_user=np.nan,
-    auth=np.nan,
-    email=np.nan,
-    password=np.nan,
-    session_token=np.nan
-):
-
-    # get dataset
-    data, userid = get_data(
-        weeks_of_data=weeks_of_data,
-        donor_group=donor_group,
-        userid_of_shared_user=userid_of_shared_user,
-        auth=auth,
-        email=email,
-        password=password,
-        session_token=session_token
-    )
-
-    return data
+    return data, userid_of_shared_user
 
 
 # %%
@@ -243,33 +337,43 @@ if __name__ == "__main__":
     data_args = get_args()
 
     try:
-        data = get_and_return_dataset(
-                    donor_group=data_args.donor_group,
-                    userid_of_shared_user=data_args.userid_of_shared_user,
-                    session_token=data_args.session_token
-                )
+        data, dataset_userid = get_dataset(
+                weeks_of_data=data_args.weeks_of_data,
+                donor_group=data_args.donor_group,
+                max_chunk_size=data_args.max_chunk_size,
+                userid_of_shared_user=data_args.userid_of_shared_user,
+                session_token=data_args.session_token,
+                return_raw_json=data_args.return_raw_json
+        )
 
         if len(data) > 0:
             filename = (
                     data_args.export_dir
                     + "PHI-"
-                    + data_args.userid_of_shared_user
-                    + ".csv.gz"
+                    + dataset_userid
+
             )
-            data.reset_index(inplace=True, drop=True)
-            data.to_csv(filename, index=False, compression='gzip')
+
+            if data_args.return_raw_json:
+                with open(filename + ".json", 'w') as json_writer:
+                    json.dump(data, json_writer)
+
+            else:
+                data.to_csv(filename + ".csv.gz",
+                            index=False,
+                            compression='gzip')
         else:
             # Append userid to list of empty datasets
             empty_dataset_list = open('PHI-empty-accounts.txt', 'a')
-            empty_dataset_list.write(data_args.userid_of_shared_user + "\n")
+            empty_dataset_list.write(dataset_userid + "\n")
             empty_dataset_list.close()
 
     except Exception as e:
         print("~~~~~~~~~~~Exception Captured Below~~~~~~~~~~~~")
-        print("FAILED TO GET DATA FOR " + data_args.userid_of_shared_user)
+        print("FAILED TO GET DATA FOR " + dataset_userid)
         print(e)
         print("\n")
 
         failed_dataset_list = open('PHI-failed-accounts.txt', 'a')
-        failed_dataset_list.write(data_args.userid_of_shared_user + "\n")
+        failed_dataset_list.write(dataset_userid + "\n")
         failed_dataset_list.close()
