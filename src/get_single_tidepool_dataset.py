@@ -386,5 +386,5 @@ if __name__ == "__main__":
         print("\n")
 
         failed_dataset_list = open("PHI-failed-accounts.txt", "a")
-        failed_dataset_list.write(dataset_userid + "\n")
+        failed_dataset_list.write(str(data_args.userid_of_shared_user) + "\n")
         failed_dataset_list.close()
