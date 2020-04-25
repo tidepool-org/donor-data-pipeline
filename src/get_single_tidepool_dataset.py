@@ -25,40 +25,54 @@ def get_args():
 
     parser = argparse.ArgumentParser(description=codeDescription)
 
-    parser.add_argument("-userid_of_shared_user",
-                        dest="userid_of_shared_user",
-                        default=np.nan,
-                        help="Tidepool userid to download")
+    parser.add_argument(
+        "-userid_of_shared_user",
+        dest="userid_of_shared_user",
+        default=np.nan,
+        help="Tidepool userid to download",
+    )
 
-    parser.add_argument("-max_chunk_size",
-                        dest="max_chunk_size",
-                        default=182,
-                        help="Maximum number of days in each API data request")
+    parser.add_argument(
+        "-max_chunk_size",
+        dest="max_chunk_size",
+        default=182,
+        help="Maximum number of days in each API data request",
+    )
 
-    parser.add_argument("-weeks_of_data",
-                        dest="weeks_of_data",
-                        default=52*10,
-                        help="Number of weeks of data to collect")
+    parser.add_argument(
+        "-weeks_of_data",
+        dest="weeks_of_data",
+        default=52 * 10,
+        help="Number of weeks of data to collect",
+    )
 
-    parser.add_argument("-donor_group",
-                        dest="donor_group",
-                        default=np.nan,
-                        help="Tidepool donor_group to download data from")
+    parser.add_argument(
+        "-donor_group",
+        dest="donor_group",
+        default=np.nan,
+        help="Tidepool donor_group to download data from",
+    )
 
-    parser.add_argument("-session_token",
-                        dest="session_token",
-                        default=np.nan,
-                        help="The session xtoken used for downloading data")
+    parser.add_argument(
+        "-session_token",
+        dest="session_token",
+        default=np.nan,
+        help="The session xtoken used for downloading data",
+    )
 
-    parser.add_argument("-export_dir",
-                        dest="export_dir",
-                        default="",
-                        help="The export directory to save data to")
+    parser.add_argument(
+        "-export_dir",
+        dest="export_dir",
+        default="",
+        help="The export directory to save data to",
+    )
 
-    parser.add_argument("-return_raw_json",
-                        dest="return_raw_json",
-                        default=False,
-                        help="Return raw JSON, otherwise returns a dataframe.")
+    parser.add_argument(
+        "-return_raw_json",
+        dest="return_raw_json",
+        default=False,
+        help="Return raw JSON, otherwise returns a dataframe.",
+    )
 
     args = parser.parse_args()
 
@@ -80,24 +94,21 @@ def get_donor_group_auth(donor_group):
 def login_and_get_xtoken(auth):
     api_call = "https://api.tidepool.org/auth/login"
     api_response = requests.post(api_call, auth=auth)
-    if(api_response.ok):
+    if api_response.ok:
         xtoken = api_response.headers["x-tidepool-session-token"]
         userid_master = json.loads(api_response.content.decode())["userid"]
         print("successfully established session for", auth[0])
     else:
-        sys.exit("Error with "
-                 + auth[0]
-                 + ":"
-                 + str(api_response.status_code))
+        sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
 
     return xtoken, userid_master
 
 
 def find_data_start_year(userid, headers, start_year=np.nan):
 
-    dates = pd.date_range('2010-01-01', end='today', freq='AS-JAN')
-    date_strings = list(dates.strftime('%Y-%m-%d'))
-    today_timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d')
+    dates = pd.date_range("2010-01-01", end="today", freq="AS-JAN")
+    date_strings = list(dates.strftime("%Y-%m-%d"))
+    today_timestamp = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     date_strings.append(today_timestamp)
 
     for date_loc in range(len(date_strings)):
@@ -108,22 +119,25 @@ def find_data_start_year(userid, headers, start_year=np.nan):
         endDate = date + "T23:59:59.999Z"
 
         api_call = (
-            "https://api.tidepool.org/data/" + userid + "?" +
-            "endDate=" + endDate + "&" +
-            "startDate=" + startDate + "&" +
-            "dexcom=true" + "&" +
-            "medtronic=true" + "&" +
-            "carelink=true"
+            "https://api.tidepool.org/data/"
+            + userid
+            + "?endDate="
+            + endDate
+            + "&startDate="
+            + startDate
+            + "&dexcom=true"
+            + "&medtronic=true"
+            + "&carelink=true"
         )
         api_response = requests.get(api_call, headers=headers)
-        if(api_response.ok):
+        if api_response.ok:
             json_data = json.loads(api_response.content.decode())
 
-            if(len(json_data) > 0):
+            if len(json_data) > 0:
                 # print(date + " has data!")
                 # Data exists somewhere between the current and previous dates
                 # Set start date to previous date
-                start_year = date_strings[max(0, date_loc-1)]
+                start_year = date_strings[max(0, date_loc - 1)]
                 break
 
         else:
@@ -141,27 +155,30 @@ def check_dataset_for_uploads(userid, headers):
 
     # Get maximum of 10 years of data
     max_endDate = datetime.datetime.utcnow()
-    max_startDate = max_endDate - pd.Timedelta(365*10, unit="d")
+    max_startDate = max_endDate - pd.Timedelta(365 * 10, unit="d")
 
     max_startDate = max_startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
     max_endDate = max_endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
 
     api_call = (
-        "https://api.tidepool.org/data/" + userid + "?" +
-        "endDate=" + max_endDate + "&" +
-        "startDate=" + max_startDate + "&" +
-        "dexcom=true" + "&" +
-        "medtronic=true" + "&" +
-        "carelink=true" + "&" +
-        "type=upload"
+        "https://api.tidepool.org/data/"
+        + userid
+        + "?endDate="
+        + max_endDate
+        + "&startDate="
+        + max_startDate
+        + "&dexcom=true"
+        + "&medtronic=true"
+        + "&carelink=true"
+        + "&type=upload"
     )
 
     api_response = requests.get(api_call, headers=headers)
 
-    if(api_response.ok):
+    if api_response.ok:
         upload_data = json.loads(api_response.content.decode())
 
-        if(len(upload_data) > 0):
+        if len(upload_data) > 0:
             uploads_exist = True
         else:
             print("No uploads exist in account!")
@@ -185,17 +202,20 @@ def check_dataset_for_uploads(userid, headers):
 def data_api_call(userid, startDate, endDate, headers):
 
     api_call = (
-        "https://api.tidepool.org/data/" + userid + "?" +
-        "endDate=" + endDate + "&" +
-        "startDate=" + startDate + "&" +
-        "dexcom=true" + "&" +
-        "medtronic=true" + "&" +
-        "carelink=true"
+        "https://api.tidepool.org/data/"
+        + userid
+        + "?endDate="
+        + endDate
+        + "&startDate="
+        + startDate
+        + "&dexcom=true"
+        + "&medtronic=true"
+        + "&carelink=true"
     )
 
     api_response = requests.get(api_call, headers=headers)
 
-    if(api_response.ok):
+    if api_response.ok:
         json_data = json.loads(api_response.content.decode())
 
     else:
@@ -217,14 +237,16 @@ def logout(auth):
     api_call = "https://api.tidepool.org/auth/logout"
     api_response = requests.post(api_call, auth=auth)
 
-    if(api_response.ok):
+    if api_response.ok:
         print("successfully logged out of", auth[0])
         pass
 
     else:
         sys.exit(
-            "Error with logging out for " +
-            auth[0] + ":" + str(api_response.status_code)
+            "Error with logging out for "
+            + auth[0]
+            + ":"
+            + str(api_response.status_code)
         )
 
     return
@@ -232,7 +254,7 @@ def logout(auth):
 
 # %% Main Function Call
 def get_dataset(
-    weeks_of_data=10*52,
+    weeks_of_data=10 * 52,
     max_chunk_size=182,
     donor_group=np.nan,
     userid_of_shared_user=np.nan,
@@ -265,10 +287,7 @@ def get_dataset(
     else:
         xtoken = session_token
 
-    headers = {
-            "x-tidepool-session-token": xtoken,
-            "Content-Type": "application/json"
-        }
+    headers = {"x-tidepool-session-token": xtoken, "Content-Type": "application/json"}
 
     data = []
 
@@ -279,7 +298,7 @@ def get_dataset(
 
         data_start_year = find_data_start_year(userid_of_shared_user, headers)
         days_since_data_start = (
-                datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
+            datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
         ).days + 1
         days_to_download = weeks_of_data * 7
 
@@ -291,14 +310,16 @@ def get_dataset(
         else:
             days_per_chunk = max_chunk_size
 
-        total_chunks = int(np.ceil(days_to_download/days_per_chunk))
+        total_chunks = int(np.ceil(days_to_download / days_per_chunk))
 
-        print("Downloading "
-              + str(days_to_download)
-              + " days of data in "
-              + str(days_per_chunk)
-              + "-day chunks...",
-              end="")
+        print(
+            "Downloading "
+            + str(days_to_download)
+            + " days of data in "
+            + str(days_per_chunk)
+            + "-day chunks...",
+            end="",
+        )
 
         endDate = datetime.datetime.utcnow()
         startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
@@ -309,11 +330,8 @@ def get_dataset(
             endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
 
             json_chunk = data_api_call(
-                    userid_of_shared_user,
-                    startDate,
-                    endDate,
-                    headers
-                )
+                userid_of_shared_user, startDate, endDate, headers
+            )
 
             data += json_chunk
 
@@ -338,33 +356,26 @@ if __name__ == "__main__":
 
     try:
         data, dataset_userid = get_dataset(
-                weeks_of_data=data_args.weeks_of_data,
-                donor_group=data_args.donor_group,
-                max_chunk_size=data_args.max_chunk_size,
-                userid_of_shared_user=data_args.userid_of_shared_user,
-                session_token=data_args.session_token,
-                return_raw_json=data_args.return_raw_json
+            weeks_of_data=data_args.weeks_of_data,
+            donor_group=data_args.donor_group,
+            max_chunk_size=data_args.max_chunk_size,
+            userid_of_shared_user=data_args.userid_of_shared_user,
+            session_token=data_args.session_token,
+            return_raw_json=data_args.return_raw_json,
         )
 
         if len(data) > 0:
-            filename = (
-                    data_args.export_dir
-                    + "PHI-"
-                    + dataset_userid
-
-            )
+            filename = data_args.export_dir + "PHI-" + dataset_userid
 
             if data_args.return_raw_json:
-                with open(filename + ".json", 'w') as json_writer:
+                with open(filename + ".json", "w") as json_writer:
                     json.dump(data, json_writer)
 
             else:
-                data.to_csv(filename + ".csv.gz",
-                            index=False,
-                            compression='gzip')
+                data.to_csv(filename + ".csv.gz", index=False, compression="gzip")
         else:
             # Append userid to list of empty datasets
-            empty_dataset_list = open('PHI-empty-accounts.txt', 'a')
+            empty_dataset_list = open("PHI-empty-accounts.txt", "a")
             empty_dataset_list.write(dataset_userid + "\n")
             empty_dataset_list.close()
 
@@ -374,6 +385,6 @@ if __name__ == "__main__":
         print(e)
         print("\n")
 
-        failed_dataset_list = open('PHI-failed-accounts.txt', 'a')
+        failed_dataset_list = open("PHI-failed-accounts.txt", "a")
         failed_dataset_list.write(dataset_userid + "\n")
         failed_dataset_list.close()
