@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-"""get_donor_data_and_metadata.py
-In the context of the big data donation
-project, this code grabs donor data and metadata.
-
-This code calls accept_new_donors_and_get_donor_list.py
-to get the most recent donor list
+"""get_single_tidepool_dataset.py
+Downloads a single donor dataset from the Tidepool API.
 """
 
 # %% REQUIRED LIBRARIES
@@ -29,49 +25,49 @@ def get_args():
         "-userid_of_shared_user",
         dest="userid_of_shared_user",
         default=np.nan,
-        help="Tidepool userid to download",
+        help="Optional Tidepool userid to download, default is master account",
     )
 
     parser.add_argument(
         "-max_chunk_size",
         dest="max_chunk_size",
         default=90,
-        help="Maximum number of days in each API data request",
+        help="Maximum number of days in each API data request (Default 90)",
     )
 
     parser.add_argument(
         "-weeks_of_data",
         dest="weeks_of_data",
         default=52 * 10,
-        help="Number of weeks of data to collect",
+        help="Number of weeks of data to collect (default 10 years)",
     )
 
     parser.add_argument(
         "-donor_group",
         dest="donor_group",
         default=np.nan,
-        help="Tidepool donor_group to download data from",
+        help="Optional Tidepool donor_group to download data from",
     )
 
     parser.add_argument(
         "-session_token",
         dest="session_token",
         default=np.nan,
-        help="The session xtoken used for downloading data",
+        help="Optional reusable session xtoken used for downloading data",
     )
 
     parser.add_argument(
         "-export_dir",
         dest="export_dir",
         default="",
-        help="The export directory to save data to",
+        help="The export directory to save data to (Default current dir)",
     )
 
     parser.add_argument(
         "-return_raw_json",
         dest="return_raw_json",
         default=False,
-        help="Return raw JSON, otherwise returns a dataframe.",
+        help="Return raw JSON, otherwise returns a dataframe. (default=False)",
     )
 
     args = parser.parse_args()
