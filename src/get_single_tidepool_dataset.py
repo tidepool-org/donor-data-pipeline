@@ -35,7 +35,7 @@ def get_args():
     parser.add_argument(
         "-max_chunk_size",
         dest="max_chunk_size",
-        default=182,
+        default=90,
         help="Maximum number of days in each API data request",
     )
 
