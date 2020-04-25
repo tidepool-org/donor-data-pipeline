@@ -260,6 +260,36 @@ def get_dataset(
     session_token=np.nan,
     return_raw_json=False,
 ):
+    """
+
+    Parameters
+    ----------
+    weeks_of_data : int
+        Number of weeks of data to download
+    max_chunk_size : int
+        Maximum number of days in a chunk to download from API
+    donor_group : str
+        Optional donor group name if getting Tidepool donor data
+    userid_of_shared_user : str
+        Optional userid if downloading data shared with master account
+    auth : Tuple
+        Optional (email, password) to be passed into login/logout functions
+    email : str
+        Optional email of account to login (if none then a request prompt will appear)
+    password : str
+        Optional password of account to login (if none then a request prompt will appear)
+    session_token : str
+        Optional xtoken if a single session is reused to download multiple datasets
+    return_raw_json : bool
+        Whether or not return the API's list of raw JSON or a pandas.DataFrame
+
+    Returns
+    -------
+    data : list or pandas.DataFrame
+        The complete data from the API
+    userid_of_shared_user : str
+        The userid of the account downloaded from (will be same as master if none specified)
+    """
 
     if pd.notnull(donor_group):
         auth = get_donor_group_auth(donor_group)
