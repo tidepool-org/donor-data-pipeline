@@ -15,6 +15,7 @@ import getpass
 import requests
 import json
 import argparse
+import datetime
 import environmentalVariables
 
 
@@ -96,7 +97,7 @@ def find_data_start_year(userid, headers, start_year=np.nan):
 
     dates = pd.date_range('2010-01-01', end='today', freq='AS-JAN')
     date_strings = list(dates.strftime('%Y-%m-%d'))
-    today_timestamp = pd.datetime.utcnow().strftime('%Y-%m-%d')
+    today_timestamp = datetime.datetime.utcnow().strftime('%Y-%m-%d')
     date_strings.append(today_timestamp)
 
     for date_loc in range(len(date_strings)):
@@ -139,7 +140,7 @@ def find_data_start_year(userid, headers, start_year=np.nan):
 def check_dataset_for_uploads(userid, headers):
 
     # Get maximum of 10 years of data
-    max_endDate = pd.datetime.utcnow()
+    max_endDate = datetime.datetime.utcnow()
     max_startDate = max_endDate - pd.Timedelta(365*10, unit="d")
 
     max_startDate = max_startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
@@ -232,7 +233,7 @@ def logout(auth):
 # %% Main Function Call
 def get_dataset(
     weeks_of_data=10*52,
-    max_chunk_size=365,
+    max_chunk_size=182,
     donor_group=np.nan,
     userid_of_shared_user=np.nan,
     auth=np.nan,
@@ -278,7 +279,7 @@ def get_dataset(
 
         data_start_year = find_data_start_year(userid_of_shared_user, headers)
         days_since_data_start = (
-                pd.datetime.utcnow() - pd.to_datetime(data_start_year)
+                datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
         ).days + 1
         days_to_download = weeks_of_data * 7
 
@@ -299,7 +300,7 @@ def get_dataset(
               + "-day chunks...",
               end="")
 
-        endDate = pd.datetime.utcnow()
+        endDate = datetime.datetime.utcnow()
         startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
 
         for chunk in range(total_chunks):
