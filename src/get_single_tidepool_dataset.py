@@ -381,7 +381,7 @@ if __name__ == "__main__":
 
     except Exception as e:
         print("~~~~~~~~~~~Exception Captured Below~~~~~~~~~~~~")
-        print("FAILED TO GET DATA FOR " + dataset_userid)
+        print("FAILED TO GET DATA FOR " + str(data_args.userid_of_shared_user))
         print(e)
         print("\n")
 
