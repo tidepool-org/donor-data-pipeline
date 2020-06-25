@@ -13,7 +13,7 @@ import json
 import argparse
 import datetime
 import orjson
-# import environmentalVariables
+import environmentalVariables
 
 
 # %% FUNCTIONS
