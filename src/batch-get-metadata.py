@@ -104,7 +104,7 @@ if __name__ == "__main__":
     userids = pd.Series(file_list).apply(lambda x: x[4:-4])
     # Skip already downloaded metadata files
     keep_file_bool = ~phi_donor_list.userID.isin(userids)
-    phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)[:150]
+    phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)[:10]
 
     # Create API xtokens for each donor group
     xtoken_dict = create_xtokens_dict(phi_donor_list)
