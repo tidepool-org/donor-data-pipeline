@@ -12,7 +12,8 @@ import requests
 import json
 import argparse
 import datetime
-import environmentalVariables
+import orjson
+# import environmentalVariables
 
 
 # %% FUNCTIONS
@@ -43,10 +44,7 @@ def get_args():
     )
 
     parser.add_argument(
-        "-donor_group",
-        dest="donor_group",
-        default=np.nan,
-        help="Optional Tidepool donor_group to download data from",
+        "-donor_group", dest="donor_group", default=np.nan, help="Optional Tidepool donor_group to download data from",
     )
 
     parser.add_argument(
@@ -57,10 +55,7 @@ def get_args():
     )
 
     parser.add_argument(
-        "-export_dir",
-        dest="export_dir",
-        default="",
-        help="The export directory to save data to (Default current dir)",
+        "-export_dir", dest="export_dir", default="", help="The export directory to save data to (Default current dir)",
     )
 
     parser.add_argument(
@@ -92,7 +87,7 @@ def login_and_get_xtoken(auth):
     api_response = requests.post(api_call, auth=auth)
     if api_response.ok:
         xtoken = api_response.headers["x-tidepool-session-token"]
-        userid_master = json.loads(api_response.content.decode())["userid"]
+        userid_master = orjson.loads(api_response.content.decode())["userid"]
         print("successfully established session for", auth[0])
     else:
         sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
@@ -127,7 +122,7 @@ def find_data_start_year(userid, headers, start_year=np.nan):
         )
         api_response = requests.get(api_call, headers=headers)
         if api_response.ok:
-            json_data = json.loads(api_response.content.decode())
+            json_data = orjson.loads(api_response.content.decode())
 
             if len(json_data) > 0:
                 # print(date + " has data!")
@@ -172,7 +167,7 @@ def check_dataset_for_uploads(userid, headers):
     api_response = requests.get(api_call, headers=headers)
 
     if api_response.ok:
-        upload_data = json.loads(api_response.content.decode())
+        upload_data = orjson.loads(api_response.content.decode())
 
         if len(upload_data) > 0:
             uploads_exist = True
@@ -212,7 +207,7 @@ def data_api_call(userid, startDate, endDate, headers):
     api_response = requests.get(api_call, headers=headers)
 
     if api_response.ok:
-        json_data = json.loads(api_response.content.decode())
+        json_data = orjson.loads(api_response.content.decode())
 
     else:
         sys.exit(
@@ -238,12 +233,7 @@ def logout(auth):
         pass
 
     else:
-        sys.exit(
-            "Error with logging out for "
-            + auth[0]
-            + ":"
-            + str(api_response.status_code)
-        )
+        sys.exit("Error with logging out for " + auth[0] + ":" + str(api_response.status_code))
 
     return
 
@@ -323,9 +313,7 @@ def get_dataset(
     if uploads_exist:
 
         data_start_year = find_data_start_year(userid_of_shared_user, headers)
-        days_since_data_start = (
-            datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
-        ).days + 1
+        days_since_data_start = (datetime.datetime.utcnow() - pd.to_datetime(data_start_year)).days + 1
         days_to_download = weeks_of_data * 7
 
         if days_since_data_start < days_to_download:
@@ -339,11 +327,7 @@ def get_dataset(
         total_chunks = int(np.ceil(days_to_download / days_per_chunk))
 
         print(
-            "Downloading "
-            + str(days_to_download)
-            + " days of data in "
-            + str(days_per_chunk)
-            + "-day chunks...",
+            "Downloading " + str(days_to_download) + " days of data in " + str(days_per_chunk) + "-day chunks...",
             end="",
         )
 
@@ -355,9 +339,7 @@ def get_dataset(
             startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
             endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
 
-            json_chunk = data_api_call(
-                userid_of_shared_user, startDate, endDate, headers
-            )
+            json_chunk = data_api_call(userid_of_shared_user, startDate, endDate, headers)
 
             data += json_chunk
 
@@ -394,8 +376,8 @@ if __name__ == "__main__":
             filename = data_args.export_dir + "PHI-" + dataset_userid
 
             if data_args.return_raw_json:
-                with open(filename + ".json", "w") as json_writer:
-                    json.dump(data, json_writer)
+                with open(filename + ".json", "wb") as json_writer:
+                    json_writer.write(orjson.dumps(data))
 
             else:
                 data.to_csv(filename + ".csv.gz", index=False, compression="gzip")
