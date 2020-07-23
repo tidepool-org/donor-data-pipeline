@@ -15,7 +15,7 @@ import os
 import sys
 import getpass
 import requests
-import json
+import orjson
 import pdb
 import argparse
 import environmentalVariables
@@ -29,45 +29,86 @@ def get_args():
 
     parser = argparse.ArgumentParser(description=codeDescription)
 
-    parser.add_argument("-userid",
-                        dest="userid",
-                        default="",
-                        help="Tidepool userid to download")
+    parser.add_argument("-userid", dest="userid", default="", help="Tidepool userid to download")
 
-    parser.add_argument("-donor_group",
-                        dest="donor_group",
-                        default="",
-                        help="Tidepool donor_group to download data from")
+    parser.add_argument(
+        "-donor_group", dest="donor_group", default="", help="Tidepool donor_group to download data from"
+    )
 
-    parser.add_argument("-export_directory",
-                        dest="export_directory",
-                        default="",
-                        help="Directory for metadata results to be exported")
+    parser.add_argument(
+        "-export_directory", dest="export_directory", default="", help="Directory for metadata results to be exported"
+    )
+
+    parser.add_argument(
+        "-session_token",
+        dest="session_token",
+        default=np.nan,
+        help="Optional reusable session xtoken used for downloading data",
+    )
 
     args = parser.parse_args()
 
     return args
 
-def make_folder_if_doesnt_exist(folder_paths):
-    ''' function requires a single path or a list of paths'''
-    if not isinstance(folder_paths, list):
-        folder_paths = [folder_paths]
-    for folder_path in folder_paths:
-        if not os.path.exists(folder_path):
-            os.makedirs(folder_path)
+
+def login_and_get_xtoken(auth):
+    api_call = "https://api.tidepool.org/auth/login"
+    api_response = requests.post(api_call, auth=auth)
+    if api_response.ok:
+        xtoken = api_response.headers["x-tidepool-session-token"]
+        userid_master = orjson.loads(api_response.content.decode())["userid"]
+        print("successfully established session for", auth[0])
+    else:
+        sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
+
+    return xtoken, userid_master
+
+
+def logout(auth):
+    api_call = "https://api.tidepool.org/auth/logout"
+    api_response = requests.post(api_call, auth=auth)
+
+    if api_response.ok:
+        print("successfully logged out of", auth[0])
+        pass
+
+    else:
+        sys.exit("Error with logging out for " + auth[0] + ":" + str(api_response.status_code))
+
     return
 
 
-def get_shared_metadata(
-        donor_group=np.nan,
-        userid_of_shared_user=np.nan,
-        auth=np.nan,
-        email=np.nan,
-        password=np.nan):
+def get_metadata(
+    donor_group=np.nan, userid_of_shared_user=np.nan, auth=np.nan, email=np.nan, password=np.nan, session_token=np.nan,
+):
+
+    """
+
+    Parameters
+    ----------
+    donor_group : str
+        Optional donor group name if getting Tidepool donor data
+    userid_of_shared_user : str
+        Optional userid if downloading data shared with master account
+    auth : Tuple
+        Optional (email, password) to be passed into login/logout functions
+    email : str
+        Optional email of account to login (if none then a request prompt will appear)
+    password : str
+        Optional password of account to login (if none then a request prompt will appear)
+    session_token : str
+        Optional xtoken if a single session is reused to download multiple datasets
+
+    Returns
+    -------
+    metadata : list or pandas.DataFrame
+        The complete data from the API
+    userid_of_shared_user : str
+        The userid of the account downloaded from (will be same as master if none specified)
+    """
 
     # login
     if pd.notnull(donor_group):
-        #print("pd.notnull(donor_group)")
         if donor_group == "bigdata":
             dg = ""
         else:
@@ -76,7 +117,6 @@ def get_shared_metadata(
         auth = environmentalVariables.get_environmental_variables(dg)
 
     if pd.isnull(auth):
-        #print("pd.notnull(auth)")
         if pd.isnull(email):
             email = input("Enter Tidepool email address:\n")
 
@@ -85,39 +125,29 @@ def get_shared_metadata(
 
         auth = (email, password)
 
-    api_call = "https://api.tidepool.org/auth/login"
-    #print("before api_response")
-    api_response = requests.post(api_call, auth=auth)
+    if pd.isnull(session_token):
+        # login to get xtoken
+        xtoken, userid_master = login_and_get_xtoken(auth)
 
-    if(api_response.status_code == 504):
-        print("login gateway timeout... sleeping 5 sec")
-        time.sleep(5)
-        api_response = requests.post(api_call, auth=auth)
-    #print("after api_response")
-    if(api_response.ok):
-        xtoken = api_response.headers["x-tidepool-session-token"]
-        userid_master = json.loads(api_response.content.decode())["userid"]
-        headers = {
-            "x-tidepool-session-token": xtoken,
-            "Content-Type": "application/json"
-        }
+        if pd.isnull(userid_of_shared_user):
+            userid_of_shared_user = userid_master
+
     else:
-        sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
+        xtoken = session_token
+
+    headers = {"x-tidepool-session-token": xtoken, "Content-Type": "application/json"}
 
     if pd.isnull(userid_of_shared_user):
         userid_of_shared_user = userid_master
 
-    api_call = (
-        "https://api.tidepool.org/metadata/%s/profile"
-        % userid_of_shared_user
-    )
+    api_call = "https://api.tidepool.org/metadata/%s/profile" % userid_of_shared_user
     api_response = requests.get(api_call, headers=headers)
-    if(api_response.status_code == 504):
+    if api_response.status_code == 504:
         print("profile gateway timeout... sleeping 5 sec")
         time.sleep(5)
         api_response = requests.get(api_call, headers=headers)
 
-    df = pd.DataFrame(
+    metadata_df = pd.DataFrame(
         dtype=object,
         columns=[
             "fullName",
@@ -128,85 +158,42 @@ def get_shared_metadata(
             "targetTimezone",
             "targetDevices",
             "isOtherPerson",
-            "about"
-        ]
+            "about",
+        ],
     )
 
-    if(api_response.ok):
-        user_profile = json.loads(api_response.content.decode())
+    if api_response.ok:
+        user_profile = orjson.loads(api_response.content.decode())
         if "patient" in user_profile.keys():
-            for k, d in zip(
-                user_profile["patient"].keys(),
-                user_profile["patient"].values()
-            ):
-                df.at[userid_of_shared_user, k] = d
+            for k, d in zip(user_profile["patient"].keys(), user_profile["patient"].values()):
+                metadata_df.at[userid_of_shared_user, k] = d
         if "fullName" in user_profile.keys():
-            df.at[userid_of_shared_user, "fullName"] = user_profile["fullName"]
+            metadata_df.at[userid_of_shared_user, "fullName"] = user_profile["fullName"]
         else:
-            df.at[userid_of_shared_user, "fullName"] = np.nan
+            metadata_df.at[userid_of_shared_user, "fullName"] = np.nan
     else:
-        sys.exit(
-            "Error getting metadata API " +
-            str(api_response.status_code)
-        )
+        sys.exit("Error getting metadata API " + str(api_response.status_code))
 
-    # logout
-    api_call = "https://api.tidepool.org/auth/logout"
-    api_response = requests.post(api_call, auth=auth)
+    metadata_df.index.rename("userid", inplace=True)
 
-    if(api_response.status_code == 504):
-        print("logout gateway timeout... sleeping 5 sec")
-        time.sleep(5)
-        api_response = requests.post(api_call, auth=auth)
+    if pd.isnull(session_token):
+        logout(auth)
 
-    if(api_response.ok):
-        pass
-        #print("successfully logged out of", auth[0])
-
-    else:
-        sys.exit(
-            "Error with logging out for " +
-            auth[0] + ":" + str(api_response.status_code)
-        )
-    df.index.rename("userid", inplace=True)
-    #print("returning...")
-    return df, userid_of_shared_user
-
-# %% START OF CODE
-def get_and_return_metadata(
-    date_stamp=dt.datetime.now().strftime("%Y-%m-%d"),
-    data_path=np.nan,
-    donor_group=np.nan,
-    userid_of_shared_user=np.nan,
-    auth=np.nan,
-    email=np.nan,
-    password=np.nan
-):
-
-    # get metadata
-    meta_df, userid = get_shared_metadata(
-        donor_group=donor_group,
-        userid_of_shared_user=userid_of_shared_user,
-        auth=auth,
-        email=email,
-        password=password
-    )
-
-    return meta_df
+    return metadata_df, userid_of_shared_user
 
 
+# %%
 if __name__ == "__main__":
 
     metadata_args = get_args()
 
-    metadata = get_and_return_metadata(
-            donor_group = metadata_args.donor_group,
-            userid_of_shared_user = metadata_args.userid
-        )
+    metadata_df, _ = get_metadata(
+        donor_group=metadata_args.donor_group,
+        userid_of_shared_user=metadata_args.userid,
+        session_token=metadata_args.session_token,
+    )
 
-    metadata.reset_index(inplace=True, drop=False)
+    metadata_df.reset_index(inplace=True, drop=False)
 
     filepath = metadata_args.export_directory + "PHI-" + metadata_args.userid + ".csv"
-    metadata.to_csv(filepath, index=False)
-
-
+    metadata_df.to_csv(filepath, index=False)

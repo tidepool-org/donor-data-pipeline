@@ -6,25 +6,22 @@ Created on Fri Oct 11 10:14:38 2019
 @author: jameno
 """
 import pandas as pd
-from multiprocessing.pool import ThreadPool
-import get_single_tidepool_dataset
-import time
 import datetime as dt
 import os
 import time
-from multiprocessing import Pool, cpu_count, get_context
+from multiprocessing import Pool, cpu_count
+import get_single_donor_notes
 import traceback
 import sys
 import subprocess as sub
 
+#%%
 
-# %%
 
-
-def download_data_subprocess(userid, donor_group, user_loc, export_dir, xtoken_dict):
+def get_donor_notes_subprocess(userid, donor_group, user_loc, export_dir, xtoken_dict):
 
     # Add a 0.1s sleep buffer
-    time.sleep(0.1)
+    # time.sleep(0.1)
 
     if (user_loc % 100 == 0) & (user_loc > 99):
         print(user_loc)
@@ -35,15 +32,15 @@ def download_data_subprocess(userid, donor_group, user_loc, export_dir, xtoken_d
     p = sub.Popen(
         [
             "python",
-            "./get_single_tidepool_dataset.py",
+            "./get_single_donor_notes.py",
+            "-userid",
+            userid,
             "-donor_group",
             donor_group,
-            "-userid_of_shared_user",
-            userid,
-            "-session_token",
-            xtoken_dict.get(donor_group),
             "-export_dir",
             export_dir,
+            "-session_token",
+            xtoken_dict.get(donor_group),
         ],
         stdout=sub.PIPE,
         stderr=sub.PIPE,
@@ -72,8 +69,8 @@ def create_xtokens_dict(phi_donor_list):
     xtoken_dict = {}
 
     for donor_group in unique_donor_groups:
-        auth = get_single_tidepool_dataset.get_donor_group_auth(donor_group)
-        xtoken, _ = get_single_tidepool_dataset.login_and_get_xtoken(auth)
+        auth = get_single_donor_notes.get_donor_group_auth(donor_group)
+        xtoken, _ = get_single_donor_notes.login_and_get_xtoken(auth)
         xtoken_dict.update({donor_group: xtoken})
 
     return xtoken_dict
@@ -83,8 +80,8 @@ def session_logout(phi_donor_list):
     unique_donor_groups = list(phi_donor_list.donorGroup.unique())
 
     for donor_group in unique_donor_groups:
-        auth = get_single_tidepool_dataset.get_donor_group_auth(donor_group)
-        get_single_tidepool_dataset.logout(auth)
+        auth = get_single_donor_notes.get_donor_group_auth(donor_group)
+        get_single_donor_notes.logout(auth)
 
     return
 
@@ -96,35 +93,22 @@ if __name__ == "__main__":
     chosen_donors_file = data_path + "PHI-{}-uniqueDonorList.csv".format(today_timestamp)
     donor_list = pd.read_csv(chosen_donors_file, low_memory=False)
     phi_donor_list = donor_list.copy()
-    export_dir = data_path + "PHI-{}-csvData/".format(today_timestamp)
+    export_dir = data_path + "PHI-{}-temp-donor-notes/".format(today_timestamp)
 
     if not os.path.exists(export_dir):
         os.makedirs(export_dir)
 
-    # Skip already downloaded data and accounts with missing data
     file_list = os.listdir(export_dir)
-    downloaded_files = pd.Series(file_list).apply(lambda x: x[4:-7])
-    not_downloaded_accounts = ~phi_donor_list.userID.isin(downloaded_files)
-
-    # Get accounts known to be missing data
-    if os.path.exists("PHI-empty-accounts.txt"):
-        empty_account_list = open("PHI-empty-accounts.txt", "r")
-        empty_accounts = empty_account_list.read()
-        empty_accounts = pd.Series(empty_accounts.split("\n")[:-1])
-        not_empty_accounts = ~phi_donor_list.userID.isin(empty_accounts)
-    else:
-        not_empty_accounts = True
-
-    keep_file_bool = not_downloaded_accounts & not_empty_accounts
+    userids = pd.Series(file_list).apply(lambda x: x[4:-4])
+    # Skip already downloaded metadata files
+    keep_file_bool = ~phi_donor_list.userID.isin(userids)
     phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
-    phi_donor_list = phi_donor_list.loc[:3]
 
     # Create API xtokens for each donor group
     xtoken_dict = create_xtokens_dict(phi_donor_list)
 
     # %% Start Multiprocessing Pool
 
-    print("Retrieving " + str(len(phi_donor_list)) + " data files.")
     start_time = time.time()
 
     # Startup CPU multiprocessing pool
@@ -132,7 +116,7 @@ if __name__ == "__main__":
 
     pool_array = [
         pool.apply_async(
-            download_data_subprocess,
+            get_donor_notes_subprocess,
             args=[
                 phi_donor_list.loc[user_loc, "userID"],
                 phi_donor_list.loc[user_loc, "donorGroup"],
@@ -140,34 +124,38 @@ if __name__ == "__main__":
                 export_dir,
                 xtoken_dict,
             ],
-        )
-        for user_loc in range(4)
-    ]  # range(len(phi_donor_list))]
+        ) for user_loc in range(len(phi_donor_list))
+    ]
 
     pool.close()
     pool.join()
 
-    end_time = time.time()
-    elapsed_minutes = (end_time - start_time) / 60
-
-    new_file_list = os.listdir(export_dir)
-    new_file_list = [file for file in new_file_list if "csv" in file]
-    new_downloaded_files = pd.Series(new_file_list).apply(lambda x: x[4:-7])
-    successful_download_count = sum(~new_downloaded_files.isin(downloaded_files))
-
-    elapsed_time_message = (
-        "Finished downloading "
-        + str(successful_download_count)
-        + " / "
-        + str(len(phi_donor_list))
-        + " datasets in: "
-        + str(round(elapsed_minutes, 4))
-        + " minutes\n"
-    )
-    print(elapsed_time_message)
-    log_file = open(data_path + "batch_get_donor_data_log.txt", "a")
-    log_file.write(str(elapsed_time_message) + "\n")
-    log_file.close()
-
     # %% Logout of each session and delete tokens
     session_logout(phi_donor_list)
+
+    # %% Append results of each pool into an array
+    all_donor_notes = []
+
+    donor_notes_file_list = os.listdir(export_dir)
+
+    if len(donor_notes_file_list) > 0:
+        print("Appending all donor notes together...", end="")
+        for donor_notes_file in donor_notes_file_list:
+            donor_notes_file_path = os.path.join(export_dir, donor_notes_file)
+            all_donor_notes.append(pd.read_csv(donor_notes_file_path))
+        print("done!")
+
+        # Convert results into dataframe
+        all_donor_notes_df = pd.concat(all_donor_notes, sort=False).reset_index(drop=True)
+        all_donor_notes_filename = data_path + "PHI-all-donor-notes-" + today_timestamp + ".csv"
+        all_donor_notes_df.to_csv(all_donor_notes_filename, index=False)
+        num_notes = len(all_donor_notes_df)
+        num_donors_with_notes = len(all_donor_notes_df['userid'].unique())
+    else:
+        num_notes = 0
+        num_donors_with_notes = 0
+
+    end_time = time.time()
+    elapsed_minutes = round((end_time - start_time) / 60, 4)
+    elapsed_time_message = "{} donor notes from {} donors, downloaded in {} minutes.".format(num_notes, num_donors_with_notes, str(elapsed_minutes))
+    print(elapsed_time_message)

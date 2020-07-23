@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
-"""get_donor_data_and_metadata.py
-In the context of the big data donation
-project, this code grabs donor data and metadata.
-
-This code calls accept_new_donors_and_get_donor_list.py
-to get the most recent donor list
+"""get_single_tidepool_dataset.py
+Downloads a single donor dataset from the Tidepool API.
 """
 
 # %% REQUIRED LIBRARIES
@@ -16,6 +12,7 @@ import requests
 import json
 import argparse
 import datetime
+import orjson
 import environmentalVariables
 
 
@@ -29,49 +26,43 @@ def get_args():
         "-userid_of_shared_user",
         dest="userid_of_shared_user",
         default=np.nan,
-        help="Tidepool userid to download",
+        help="Optional Tidepool userid to download, default is master account",
     )
 
     parser.add_argument(
         "-max_chunk_size",
         dest="max_chunk_size",
-        default=182,
-        help="Maximum number of days in each API data request",
+        default=90,
+        help="Maximum number of days in each API data request (Default 90)",
     )
 
     parser.add_argument(
         "-weeks_of_data",
         dest="weeks_of_data",
         default=52 * 10,
-        help="Number of weeks of data to collect",
+        help="Number of weeks of data to collect (default 10 years)",
     )
 
     parser.add_argument(
-        "-donor_group",
-        dest="donor_group",
-        default=np.nan,
-        help="Tidepool donor_group to download data from",
+        "-donor_group", dest="donor_group", default=np.nan, help="Optional Tidepool donor_group to download data from",
     )
 
     parser.add_argument(
         "-session_token",
         dest="session_token",
         default=np.nan,
-        help="The session xtoken used for downloading data",
+        help="Optional reusable session xtoken used for downloading data",
     )
 
     parser.add_argument(
-        "-export_dir",
-        dest="export_dir",
-        default="",
-        help="The export directory to save data to",
+        "-export_dir", dest="export_dir", default="", help="The export directory to save data to (Default current dir)",
     )
 
     parser.add_argument(
         "-return_raw_json",
         dest="return_raw_json",
         default=False,
-        help="Return raw JSON, otherwise returns a dataframe.",
+        help="Return raw JSON, otherwise returns a dataframe. (default=False)",
     )
 
     args = parser.parse_args()
@@ -96,7 +87,7 @@ def login_and_get_xtoken(auth):
     api_response = requests.post(api_call, auth=auth)
     if api_response.ok:
         xtoken = api_response.headers["x-tidepool-session-token"]
-        userid_master = json.loads(api_response.content.decode())["userid"]
+        userid_master = orjson.loads(api_response.content.decode())["userid"]
         print("successfully established session for", auth[0])
     else:
         sys.exit("Error with " + auth[0] + ":" + str(api_response.status_code))
@@ -131,7 +122,7 @@ def find_data_start_year(userid, headers, start_year=np.nan):
         )
         api_response = requests.get(api_call, headers=headers)
         if api_response.ok:
-            json_data = json.loads(api_response.content.decode())
+            json_data = orjson.loads(api_response.content.decode())
 
             if len(json_data) > 0:
                 # print(date + " has data!")
@@ -176,7 +167,7 @@ def check_dataset_for_uploads(userid, headers):
     api_response = requests.get(api_call, headers=headers)
 
     if api_response.ok:
-        upload_data = json.loads(api_response.content.decode())
+        upload_data = orjson.loads(api_response.content.decode())
 
         if len(upload_data) > 0:
             uploads_exist = True
@@ -216,7 +207,7 @@ def data_api_call(userid, startDate, endDate, headers):
     api_response = requests.get(api_call, headers=headers)
 
     if api_response.ok:
-        json_data = json.loads(api_response.content.decode())
+        json_data = orjson.loads(api_response.content.decode())
 
     else:
         sys.exit(
@@ -242,12 +233,7 @@ def logout(auth):
         pass
 
     else:
-        sys.exit(
-            "Error with logging out for "
-            + auth[0]
-            + ":"
-            + str(api_response.status_code)
-        )
+        sys.exit("Error with logging out for " + auth[0] + ":" + str(api_response.status_code))
 
     return
 
@@ -264,6 +250,36 @@ def get_dataset(
     session_token=np.nan,
     return_raw_json=False,
 ):
+    """
+
+    Parameters
+    ----------
+    weeks_of_data : int
+        Number of weeks of data to download
+    max_chunk_size : int
+        Maximum number of days in a chunk to download from API
+    donor_group : str
+        Optional donor group name if getting Tidepool donor data
+    userid_of_shared_user : str
+        Optional userid if downloading data shared with master account
+    auth : Tuple
+        Optional (email, password) to be passed into login/logout functions
+    email : str
+        Optional email of account to login (if none then a request prompt will appear)
+    password : str
+        Optional password of account to login (if none then a request prompt will appear)
+    session_token : str
+        Optional xtoken if a single session is reused to download multiple datasets
+    return_raw_json : bool
+        Whether or not return the API's list of raw JSON or a pandas.DataFrame
+
+    Returns
+    -------
+    data : list or pandas.DataFrame
+        The complete data from the API
+    userid_of_shared_user : str
+        The userid of the account downloaded from (will be same as master if none specified)
+    """
 
     if pd.notnull(donor_group):
         auth = get_donor_group_auth(donor_group)
@@ -297,9 +313,7 @@ def get_dataset(
     if uploads_exist:
 
         data_start_year = find_data_start_year(userid_of_shared_user, headers)
-        days_since_data_start = (
-            datetime.datetime.utcnow() - pd.to_datetime(data_start_year)
-        ).days + 1
+        days_since_data_start = (datetime.datetime.utcnow() - pd.to_datetime(data_start_year)).days + 1
         days_to_download = weeks_of_data * 7
 
         if days_since_data_start < days_to_download:
@@ -313,11 +327,7 @@ def get_dataset(
         total_chunks = int(np.ceil(days_to_download / days_per_chunk))
 
         print(
-            "Downloading "
-            + str(days_to_download)
-            + " days of data in "
-            + str(days_per_chunk)
-            + "-day chunks...",
+            "Downloading " + str(days_to_download) + " days of data in " + str(days_per_chunk) + "-day chunks...",
             end="",
         )
 
@@ -329,9 +339,7 @@ def get_dataset(
             startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
             endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
 
-            json_chunk = data_api_call(
-                userid_of_shared_user, startDate, endDate, headers
-            )
+            json_chunk = data_api_call(userid_of_shared_user, startDate, endDate, headers)
 
             data += json_chunk
 
@@ -368,8 +376,8 @@ if __name__ == "__main__":
             filename = data_args.export_dir + "PHI-" + dataset_userid
 
             if data_args.return_raw_json:
-                with open(filename + ".json", "w") as json_writer:
-                    json.dump(data, json_writer)
+                with open(filename + ".json", "wb") as json_writer:
+                    json_writer.write(orjson.dumps(data))
 
             else:
                 data.to_csv(filename + ".csv.gz", index=False, compression="gzip")
@@ -386,5 +394,5 @@ if __name__ == "__main__":
         print("\n")
 
         failed_dataset_list = open("PHI-failed-accounts.txt", "a")
-        failed_dataset_list.write(dataset_userid + "\n")
+        failed_dataset_list.write(str(data_args.userid_of_shared_user) + "\n")
         failed_dataset_list.close()
