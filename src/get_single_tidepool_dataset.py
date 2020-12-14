@@ -308,45 +308,47 @@ def get_dataset(
     data = []
 
     # Check if dataset is contains data or is empty
-    uploads_exist = check_dataset_for_uploads(userid_of_shared_user, headers)
+    # This was a solution to reduce the requests made to empty datasets
+    # However, some mobile-only datasets will be missed due to a missing upload time record
+    # This is now commented until a backend fix is applied
+    # uploads_exist = check_dataset_for_uploads(userid_of_shared_user, headers)
+    # data_start_year = find_data_start_year(userid_of_shared_user, headers)
+    
+    data_start_year = '2010'
+    days_since_data_start = (datetime.datetime.utcnow() - pd.to_datetime(data_start_year)).days + 1
+    days_to_download = weeks_of_data * 7
 
-    if uploads_exist:
+    if days_since_data_start < days_to_download:
+        days_to_download = days_since_data_start
 
-        data_start_year = find_data_start_year(userid_of_shared_user, headers)
-        days_since_data_start = (datetime.datetime.utcnow() - pd.to_datetime(data_start_year)).days + 1
-        days_to_download = weeks_of_data * 7
+    if days_to_download < max_chunk_size:
+        days_per_chunk = days_to_download
+    else:
+        days_per_chunk = max_chunk_size
 
-        if days_since_data_start < days_to_download:
-            days_to_download = days_since_data_start
+    total_chunks = int(np.ceil(days_to_download / days_per_chunk))
 
-        if days_to_download < max_chunk_size:
-            days_per_chunk = days_to_download
-        else:
-            days_per_chunk = max_chunk_size
+    print(
+        "Downloading " + str(days_to_download) + " days of data in " + str(days_per_chunk) + "-day chunks...",
+        end="",
+    )
 
-        total_chunks = int(np.ceil(days_to_download / days_per_chunk))
+    endDate = datetime.datetime.utcnow()
+    startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
 
-        print(
-            "Downloading " + str(days_to_download) + " days of data in " + str(days_per_chunk) + "-day chunks...",
-            end="",
-        )
+    for chunk in range(total_chunks):
 
-        endDate = datetime.datetime.utcnow()
+        startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
+        endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
+
+        json_chunk = data_api_call(userid_of_shared_user, startDate, endDate, headers)
+
+        data += json_chunk
+
+        endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
         startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
 
-        for chunk in range(total_chunks):
-
-            startDate = startDate.strftime("%Y-%m-%d") + "T00:00:00.000Z"
-            endDate = endDate.strftime("%Y-%m-%d") + "T23:59:59.999Z"
-
-            json_chunk = data_api_call(userid_of_shared_user, startDate, endDate, headers)
-
-            data += json_chunk
-
-            endDate = pd.to_datetime(startDate) - pd.Timedelta(1, unit="d")
-            startDate = endDate - pd.Timedelta(days_per_chunk, unit="d")
-
-        print("done.")
+    print("done.")
 
     if not return_raw_json:
         data = pd.DataFrame(data)
