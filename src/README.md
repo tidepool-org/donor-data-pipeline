@@ -74,7 +74,7 @@ The Donor Data Pipeline is run within an anaconda virtual environment. [Anaconda
 
 1. In a teriminal, navigate to this repository's root folder where the `environmental.yml` file is located.
 2. Run `conda env create`. This will download all of the pipeline's package dependencies and install them in a virtual environment named **tbddp** (**T**idepool **B**ig **D**ata **D**onation **P**roject)
-3. Run `conda activate tidepool-analytics` to activate the environment and `conda deactivate` at anytime to exit. Note: You may optionally use the virtualenv `source` command instead of `conda` to actiavet and deactivate the environment.
+3. Run `conda activate tbddp` to activate the environment and `conda deactivate` at anytime to exit. Note: You may optionally use the virtualenv `source` command instead of `conda` to actiavet and deactivate the environment.
 
 **Add Environmental File Dependency (Tidepool Employees Only)**
 
