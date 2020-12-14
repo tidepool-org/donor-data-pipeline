@@ -117,7 +117,6 @@ if __name__ == "__main__":
 
     keep_file_bool = not_downloaded_accounts & not_empty_accounts
     phi_donor_list = phi_donor_list[keep_file_bool].reset_index(drop=True)
-    phi_donor_list = phi_donor_list.loc[:3]
 
     # Create API xtokens for each donor group
     xtoken_dict = create_xtokens_dict(phi_donor_list)
