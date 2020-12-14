@@ -140,8 +140,7 @@ if __name__ == "__main__":
                 xtoken_dict,
             ],
         )
-        for user_loc in range(4)
-    ]  # range(len(phi_donor_list))]
+        for user_loc in range(len(phi_donor_list))]
 
     pool.close()
     pool.join()
