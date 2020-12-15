@@ -194,6 +194,7 @@ if __name__ == "__main__":
     )
 
     metadata_df.reset_index(inplace=True, drop=False)
+    metadata_df['donorGroup'] = metadata_args.donor_group
 
     filepath = metadata_args.export_directory + "PHI-" + metadata_args.userid + ".csv"
     metadata_df.to_csv(filepath, index=False)

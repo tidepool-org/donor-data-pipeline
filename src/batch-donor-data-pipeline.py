@@ -28,21 +28,6 @@ import sys
 import donor_data_pipeline
 import pickle
 
-# %% Global Pipeline Defaults (eventually become config args)
-
-# Download and save the unique donor list
-unique_donors_file = 'PHI-unique-donor-list-2019-11-12.csv'
-saveUniqueDonorList = False
-
-import_data_path = 'PHI-2019-11-13-csvData/'
-import_data = True
-save_new_data = False
-
-chosen_donors_file = "PHI-batch-vector-qualify-10k-with-metadata-2019-12-05.csv"
-subset_selection = "sample"
-dataset_type = "all"
-test_set_days = 0
-
 
 # %%
 def run_pipeline(userid,
@@ -53,7 +38,8 @@ def run_pipeline(userid,
                  save_new_data,
                  data_path,
                  dataset_type,
-                 test_set_days):
+                 test_set_days,
+                 add_tier_prefix):
     # Set the python unbuffered state to 1 to allow stdout buffer access
     # This allows continuous reading of subprocess output
     os.environ["PYTHONUNBUFFERED"] = "1"
@@ -69,9 +55,10 @@ def run_pipeline(userid,
              "-data_path", data_path,
              "-dataset_type", dataset_type,
              "-test_set_days", str(test_set_days),
-             "-custom_start_date", "2019-05-01",
-             "-custom_end_date", "2019-08-01",
-             "-api_sleep_buffer", "True"
+             "-add_tier_prefix", str(add_tier_prefix)
+             #"-custom_start_date", "2019-05-01",
+             #"-custom_end_date", "2019-08-01",
+             #"-api_sleep_buffer", "True"
          ],
         stdout=sub.PIPE,
         stderr=sub.PIPE
@@ -90,6 +77,7 @@ def run_pipeline(userid,
     if errors == '':
         print(output)
     else:
+        print("{} -- {} -- !!!! FAILURE !!!!".format(user_loc, userid))
         print(errors)
 
     done_statement = str(user_loc) + " is complete and returned successfully"
@@ -103,8 +91,27 @@ def run_pipeline(userid,
 if __name__ == '__main__':
 
     today_timestamp = dt.datetime.now().strftime("%Y-%m-%d")
-    export_directory = "PHI-" + subset_selection + "-export-" + today_timestamp
 
+    # %% Global Pipeline Defaults (eventually become config args)
+
+	# Download and save the unique donor list
+	# unique_donors_file = 'PHI-unique-donor-list-2019-11-12.csv'
+	# saveUniqueDonorList = False
+
+    data_path = "../data/PHI-{}-donor-data/".format(today_timestamp)
+    csv_data_location = data_path + "PHI-{}-csvData/".format(today_timestamp)
+
+    qualified_donors_file = data_path + "PHI-metadata-and-batch-qualify-stats-{}.csv".format(today_timestamp)
+    qualified_donors = pd.read_csv(qualified_donors_file, low_memory=False)
+
+    dataset_name = "sample"
+    dataset_type = "all" # (all, sap, hcl, pa, basalIQ, inpen)
+    test_set_days = 0
+    import_data = True
+    add_tier_prefix = True
+    save_new_data = False
+
+    export_directory = data_path + "PHI-{}-export-{}".format(dataset_name, today_timestamp)
     pipeline_results_dir = export_directory + '/PHI-pipeline-results/'
     train_data_dir = export_directory + "/train/train-data/"
     test_data_dir = export_directory + "/test/test-data/"
@@ -144,21 +151,27 @@ if __name__ == '__main__':
         if not os.path.exists(directory):
             os.makedirs(directory)
 
+    # TODO: Determine whether this is necessary for donor_data_pipeline.py
+    '''
     phi_donor_list = \
         donor_data_pipeline.get_unique_donor_list(today_timestamp,
                                                   saveUniqueDonorList,
                                                   unique_donors_file)
 
     donor_list = pd.read_csv(chosen_donors_file, low_memory=False)
-    donor_list = donor_list[donor_list['new_selection'] == subset_selection]
+    donor_list = donor_list[donor_list['new_selection'] == dataset_name]
     donor_list.reset_index(drop=True, inplace=True)
+	'''
 
+	# This just adds the csv full path to the qualified stats + metadata
+    '''
     if('import_data_path' in locals()):
         donor_list["data_path"] = \
             import_data_path + \
             "PHI-" + donor_list['userid'] + ".csv.gz"
     else:
         donor_list["data_path"] = ""
+	'''
 
     dictionary_template = pd.read_csv('data-dictionary-template.csv',
                                       low_memory=False)
@@ -175,17 +188,18 @@ if __name__ == '__main__':
     pool_array = [
             pool.apply_async(
                     run_pipeline,
-                    args=[donor_list.loc[user_loc, 'userid'],
-                          donor_list.loc[user_loc, 'donorGroup'],
+                    args=[qualified_donors.loc[user_loc, 'userid'],
+                          qualified_donors.loc[user_loc, 'donorGroup'],
                           export_directory,
                           user_loc,
                           import_data,
                           save_new_data,
-                          donor_list.loc[user_loc, 'data_path'],
+                          qualified_donors.loc[user_loc, 'data_path'],
                           dataset_type,
-                          test_set_days
+                          test_set_days,
+                          add_tier_prefix
                           ],
-                    ) for user_loc in range(len(donor_list))
+                    ) for user_loc in range(len(qualified_donors))
                  ]
     # Close pool for letting any other subprocesses from being added
     pool.close()
@@ -291,19 +305,19 @@ if __name__ == '__main__':
     # %% Export all data to their appropriate folders
 
     data_dictionary.to_csv(export_directory + "/train/" +
-                           subset_selection + "-data-dictionary.csv",
+                           dataset_name + "-data-dictionary.csv",
                            index=False)
 
     data_dictionary.to_csv(export_directory + "/test/" +
-                           subset_selection + "-data-dictionary.csv",
+                           dataset_name + "-data-dictionary.csv",
                            index=False)
 
     all_train_summary_metadata.to_csv(export_directory + "/train/" +
-                                      subset_selection + "-train-metadata-summary.csv",
+                                      dataset_name + "-train-metadata-summary.csv",
                                       index=False)
 
     all_test_summary_metadata.to_csv(export_directory + "/test/" +
-                                     subset_selection + "-test-metadata-summary.csv",
+                                     dataset_name + "-test-metadata-summary.csv",
                                      index=False)
 
     all_removed_columns.to_csv(qa_dir +

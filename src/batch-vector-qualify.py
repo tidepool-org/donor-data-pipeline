@@ -17,24 +17,13 @@ import traceback
 import sys
 #%%
 
-data_location = 'PHI-2019-11-13-csvData/'
-file_list = os.listdir(data_location)
+def get_vector_summary(file_name, csv_data_location, user_loc, log_path):
 
-# Filter only .csv files
-file_list = [filename for filename in file_list if '.csv' in filename]
-
-chosen_donors_file = "PHI-all-qualify-stats-and-metadata-2019-11-21.csv"
-donor_list = pd.read_csv(chosen_donors_file, low_memory=False)
-
-#%%
-
-def get_vector_summary(file_name, data_location, user_loc):
-
-    file_path = data_location + file_name
+    file_path = csv_data_location + file_name
     print(str(user_loc) + " STARTING")
     if((user_loc % 100 == 0) & (user_loc > 99)):
         print(user_loc)
-        log_file = open('batch-vector-qualify-log.txt', 'a')
+        log_file = open(log_path, 'a')
         log_file.write(str(user_loc)+"\n")
         log_file.close()
 
@@ -57,6 +46,18 @@ def get_vector_summary(file_name, data_location, user_loc):
 # %%
 if __name__ == "__main__":
     # Start Pipeline
+    data_path = "../data/PHI-{}-donor-data/".format(today_timestamp)
+    log_path = data_path + 'batch-vector-qualify-log.txt'
+    donor_metadata_file = data_path + "PHI-batch-metadata-{}.csv".format(today_timestamp)
+    donor_metadata = pd.read_csv(donor_metadata_file, low_memory=False)
+
+    csv_data_location = data_path + "PHI-{}-csvData/".format(today_timestamp)
+    file_list = os.listdir(csv_data_location)
+
+    # Filter only .csv files
+    file_list = [filename for filename in file_list if '.csv' in filename]
+
+    # Start Vector Qualify Processing
     start_time = time.time()
 
     # Startup CPU multiprocessing pool
@@ -65,8 +66,9 @@ if __name__ == "__main__":
     pool_array = [pool.apply_async(
             get_vector_summary,
             args=[file_list[user_loc],
-                  data_location,
-                  user_loc
+                  csv_data_location,
+                  user_loc,
+                  log_path
                   ]
             ) for user_loc in range(len(file_list))]
 
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     elapsed_time_message = "Vector Qualify completed in: " + \
         str(elapsed_minutes) + " minutes\n"
     print(elapsed_time_message)
-    log_file = open('batch-vector-qualify-log.txt', 'a')
+    log_file = open(log_path, 'a')
     log_file.write(str(elapsed_time_message)+"\n")
     log_file.close()
 
@@ -97,10 +99,11 @@ if __name__ == "__main__":
                 print(text_string)
 
     # %%
-    # Convert results into dataframe
+    # Convert results into dataframe and merge in metadata
     vector_summary_df = pd.concat(results_array, sort=False)
-    missing_columns = list(set(list(donor_list)) - set(list(vector_summary_df)))
-    vector_summary_df = pd.merge(vector_summary_df, donor_list[['file_name'] + missing_columns], how='left', on='file_name')
-    today_timestamp = dt.datetime.now().strftime("%Y-%m-%d")
-    vector_export_filename = 'PHI-batch-vector-qualify-' + today_timestamp + '.csv'
+    donor_metadata['file_name'] = 'PHI-' + donor_metadata['userid'] + '.csv.gz'
+    donor_metadata['data_path'] = csv_data_location + donor_metadata['file_name']
+    missing_columns = ['file_name'] + list(set(list(donor_metadata)) - set(list(vector_summary_df)))
+    vector_summary_df = pd.merge(vector_summary_df, donor_metadata[missing_columns], how='left', on='file_name')
+    vector_export_filename = data_path + 'PHI-metadata-and-batch-qualify-stats-{}.csv'.format(today_timestamp)
     vector_summary_df.to_csv(vector_export_filename, index=False)

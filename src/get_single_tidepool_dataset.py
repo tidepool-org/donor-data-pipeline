@@ -310,11 +310,12 @@ def get_dataset(
     # Check if dataset is contains data or is empty
     # This was a solution to reduce the requests made to empty datasets
     # However, some mobile-only datasets will be missed due to a missing upload time record
-    # This is now commented until a backend fix is applied
+    # Leaving this commented for now
     # uploads_exist = check_dataset_for_uploads(userid_of_shared_user, headers)
+    # if uploads_exist:
     # data_start_year = find_data_start_year(userid_of_shared_user, headers)
-    
-    data_start_year = '2010'
+
+    data_start_year = '2010' 
     days_since_data_start = (datetime.datetime.utcnow() - pd.to_datetime(data_start_year)).days + 1
     days_to_download = weeks_of_data * 7
 

@@ -480,7 +480,8 @@ def pipeline_wrapper(userid,
       # This helps reduce the possibility of 504 timeouts
       # from too many multiprocessing requests
       time.sleep(np.random.randint(30))
-    metadata = get_single_donor_metadata.get_and_return_metadata(
+
+    metadata, _ = get_single_donor_metadata.get_metadata(
         donor_group=donor_group,
         userid_of_shared_user=userid
     )
@@ -489,6 +490,7 @@ def pipeline_wrapper(userid,
 
     print("done, took", str(get_metadata_runtime), "seconds")
     pipeline_metadata['get_metadata_runtime'] = get_metadata_runtime
+
 
     ################
     # GETTING DATA #
@@ -682,7 +684,8 @@ def pipeline_wrapper(userid,
         qualifiedTestEnd = anonymized_end_date
 
         if(add_tier_prefix):
-            tier_names = np.array(['T0', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6'])
+            tier_prefix_letter = 'T'
+            tier_names = np.array([tier_prefix_letter + str(num) for num in np.arange(7)])
             tier_min_days = np.array([0, 30, 100, 200, 366, 731, 1096])
             dataset_days = vector_qualify_metadata[dataset_type + '_days'][0]
             tier_loc = np.argmax(tier_min_days[dataset_days >= tier_min_days])
@@ -694,6 +697,8 @@ def pipeline_wrapper(userid,
         else:
             train_filename = hashID + ".csv"
             test_filename = "EMPTY_TEST_" + hashID + ".csv"
+
+        pipeline_metadata['file_name'] = train_filename
 
     train_summary_metadata = \
         create_summary_metadata(train_filename,
