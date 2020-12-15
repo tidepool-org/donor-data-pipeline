@@ -1,0 +1,102 @@
+FIELD,DESCRIPTION,TYPE,EXAMPLES
+activeSchedule,"The active schedule id set associated with pumpSettings in the fields: bolus, basalSchedules, insulinSensitivities, carbRatios, and bgTargets",STRING,a553a79b
+activityDuration.units,The duration of a physical activity,STRING,"minutes, seconds"
+activityDuration.value,The units of the duration of a physical activity,FLOAT,"60, 4412.55045473575"
+activityName,The name of the physical activity event if available,STRING,"Running, Walking, Cycling, Yoga"
+alarmType,The type of alarm activated,STRING,"no_insulin, low_insulin, occlusion"
+basalSchedules,"A dictionary of schedule names, their basal rates, and start times (milliseconds since midnight)",DICT,"{'a553a79b': [{'rate': 0.7, 'start': 0}, {'rate': 0.9, 'start': 19800000}, {'rate': 0.8, 'start': 25200000}, {'rate': 0.9, 'start': 39600000}, {'rate': 0.8, 'start': 50400000}, {'rate': 0.75, 'start': 79200000}]}"
+bgInput,Blood glucose (mmol/L) input to pump calculator,FLOAT,"0, 4.718135792, 22.48052936"
+bgTarget,"The bgTarget(s) (mmol/L) high, low, or range used during pump calculations","DICT, LIST","{'target': 6.66089758925464}, {'range': 1.11015, 'target': 5.55075}, [{'high': 7.21597, 'low': 4.99567, 'start': 0}, {'high': 7.21597, 'low': 4.99567, 'start': 25200000}]"
+bgTargets,"A dictionary of schedule names, their blood glucose target ranges (mmol/L), , and start times (milliseconds since midnight)","DICT, LIST","{'a553a79b': [{'start': 0, 'target': 6.66089758925464}, {'start': 19800000, 'target': 6.66089758925464}, {'start': 25200000, 'target': 6.66089758925464}, {'start': 39600000, 'target': 6.66089758925464}, {'start': 50400000, 'target': 6.66089758925464}, {'start': 79200000, 'target': 6.66089758925464}]}"
+bgTarget.high,The high bgTarget (mmol/L) used during pump calculations,FLOAT,7.21597
+bgTarget.low,The low bgTarget (mmol/L) used during pump calculations,FLOAT,4.99567
+bgTarget.range,The range (mmol/L) around a target bg used during pump calculations,FLOAT,1.11015
+bgTarget.start,The bgTarget start time (milliseconds since midnight),INT,"0, 19800000"
+bgTarget.target,The bgTarget (mmol/L) used during pump calculations,FLOAT,6.660897589
+bolusSchedules,A dictionary of schedule names and their bolus calculator settings,DICT,"{'a553a79b': {'amountMaximum': {'units': 'Units', 'value': 15}, 'calculator': {'enabled': True, 'insulin': {'duration': 240, 'units': 'minutes'}}}, '862691a2': {'amountMaximum': {'units': 'Units', 'value': 15}, 'calculator': {'enabled': True, 'insulin': {'duration': 240, 'units': 'minutes'}}}}"
+carbInput,Carbohydrates (grams) input to pump calculator,INT,"0, 32, 56, 93"
+carbRatio,"The insulin to carb ratios (1 unit:grams), and start times (milliseconds since midnight) used during pump calculations",LIST,"[{'amount': 1.125, 'start': 0}, {'amount': 9.3, 'start': 25200000}, {'amount': 1.5, 'start': 41400000}, {'amount': 8.7, 'start': 46800000}, {'amount': 8.7, 'start': 57600000}, {'amount': 6.45, 'start': 70200000}, {'amount': 1.125, 'start': 82800000}]"
+carbRatios,"A dictionary of schedule names, their insulin to carb ratios (1 unit:grams), and start times (milliseconds since midnight)",DICT,"{'a553a79b': [{'amount': 10, 'start': 0}, {'amount': 9, 'start': 19800000}, {'amount': 10, 'start': 25200000}, {'amount': 7.5, 'start': 39600000}, {'amount': 9, 'start': 50400000}, {'amount': 10, 'start': 79200000}]}"
+carbRatio.amount,The insulin to carb ratio (1 unit:grams) used during pump calculations,FLOAT,"10, 7.5"
+carbRatio.start,The start time (milliseconds since midnight) used during pump calculations,INT,"19800000, 25200000"
+change.agent,The kind of time change,STRING,manual
+change.from,The starting timestamp of the change,STRING,2019-03-09T20:58:53
+change.to,The ending timestamp of the change ,STRING,2019-03-09T21:58:00
+defaultAlerts,The set of default alerts used by a device,DICT,"{'enabled': True, 'fall': {'enabled': True, 'rate': 2, 'units': 'mg/dL/minute'}, 'high': {'enabled': True, 'level': 200, 'snooze': {'duration': 0, 'units': 'minutes'}, 'units': 'mg/dL'}, 'low': {'enabled': True, 'level': 70, 'snooze': {'duration': 15, 'units': 'minutes'}, 'units': 'mg/dL'}, 'outOfRange': {'duration': 20, 'enabled': True, 'units': 'minutes'}, 'rise': {'enabled': True, 'rate': 3, 'units': 'mg/dL/minute'}, 'urgentLow': {'enabled': True, 'level': 55, 'snooze': {'duration': 0, 'units': 'minutes'}, 'units': 'mg/dL'}}"
+deliveryType,The type of basal event,STRING,"scheduled, temp, suspend"
+deviceId,A unique identifier for each pump and glucose monitoring device,STRING,3fd511c4
+deviceManufacturers,A unique identifier for each manufacturer of pump and glucose monitoring device,STRING,2dfaaf91
+deviceModel,A unique identifier for each model of pump and glucose monitoring device,STRING,a3b67c08
+deviceSerialNumber,A unique identifier for each serial number of pump and glucose monitoring device,STRING,48458d6f
+deviceTags,A list of data device type tags associated with each event,LIST,"['bgm'], ['cgm'], ['insulin-pump', 'cgm']"
+deviceTime,The device time in YYYY-MM-DDThh:mm:ss format,STRING,2017-04-21T20:59:40
+distance.units,The units of the distance travelled,STRING,miles
+distance.value,The value of the distance travelled,FLOAT,5.243008302
+dose.units,The units of the amount of manual insulin given,STRING,Units
+dose.total,The amount of manual insulin given,FLOAT,5
+duration,"The actual duration (milliseconds) of a suspend, basal, or dual/square bolus",INT,"0, 230000, 7112000"
+durationOfInsulinActionInSeconds,The duration of insulin action in seconds for connected pen data,INT,10800
+energy.units,The amount of energy spent during activity,DICT,kilocalories
+energy.value,The units of the amount of energy spent during activity,FLOAT,280.84
+est.localTime,The estimated local time in the format YYYY-MM-DDThh:mm:ss.sss,STRING,2017-11-09T15:07:54
+est.annotations,The annotation label given by the estimate local time algorithm,STRING,"unable-to-impute-tzo, tz-inferred-from-cgm.upload.imputed, likely-dst-error-OR-travel"
+est.gapSize,The number of days with an imputed timezone from the estimate local time algorithm. Interpreted as a gap between days with known timezone information.,INT,"3, 18"
+est.timeProcessing,The type of timeProcessing done by the estimate local time algorithm,STRING,"none, utc-bootstrapping, across-the-board-timezone"
+est.timezoneOffset,The timezone offset from UTC in minutes used by the estimate local time algorithm,FLOAT,"-240, 420"
+est.version,The version of the estimate local time algorithm used,STRING,"0.0.3, 0.0.4"
+est.type,The source type used by the estimate local time algorithm,STRING,"UNCERTAIN, UPLOAD, DEVICE"
+expectedDuration,"The expected duration (milliseconds) of a suspend, basal, or dual/square bolus",INT,"3600000, 7200000"
+expectedExtended,The expected delivered amount of extended dual/square bolus insulin,FLOAT,"2.125, 5, 4.696"
+expectedNormal,The expected delivered amount of normal bolus insulin,FLOAT,"1.5, 2.6, 5.71"
+extended,The actual delivered amount of extended dual/square bolus insulin,FLOAT,"0.125, 3.15"
+formulation.simple.actingType,The type of insulin formulation used,STRING,"rapid, long"
+highAlerts.enabled,True/False whether high alerts are used for CGM,STRING,"TRUE, FALSE"
+highAlerts.level,The bg level (in mmol/L) that will trigger a high alert,FLOAT,"8.8812, 13.87687"
+highAlerts.snooze,The duration a highAlert is snoozed for in milliseconds,INT,"900000, 10800000"
+id,A unique identifier for each data entry,STRING,e89ckcl5g73jbuo6p923a6be8m7ralsv0c4ecbf
+insulinCarbRatio,The insulin-to-carb ratio (1 unit:grams) used during pump calculations,FLOAT,"7, 9.5"
+insulinConcentration,The concentration of insulin in units per mL for a connected pen,STRING,U-100
+insulinManuallyEntered,Whether a connected pen insulin entry was entered by the user or automatic,STRING,"True, False"
+insulinName,The name of the insulin used by a connected pen bolus,STRING,"Bolus, Humalog"
+insulinOnBoard,"The insulin ""on board"" in the body used during pump calculations",FLOAT,"0, 3.14"
+insulinSensitivities,"A dictionary of schedule names, their insulin sensitivities (mmol/L : 1 unit), and start times (milliseconds since midnight)",DICT,"{'a553a79b': [{'amount': 3.0529113950750433, 'start': 0}, {'amount': 2.7753739955227665, 'start': 19800000}, {'amount': 2.7753739955227665, 'start': 25200000}, {'amount': 2.7753739955227665, 'start': 39600000}, {'amount': 3.0529113950750433, 'start': 50400000}, {'amount': 3.6079861941795968, 'start': 79200000}]}"
+insulinSensitivity,The insulin sensitivity (mmol/L : 1 unit) used during pump calculations,FLOAT,"3.0529113950750433, 2.7753739955227665"
+insulinSensitivity.amount,The insulin sensitivity (mmol/L : 1 unit) used during pump calculations,FLOAT,"3.05291139508, 3.0529113950750433"
+insulinSensitivity.start,The start time (milliseconds since midnight) used during pump calculations,INT,"19800000, 25200000"
+lowAlerts.enabled,True/False whether low alerts are used for CGM,STRING,"TRUE, FALSE"
+lowAlerts.level,The bg level (in mmol/L) that will trigger a low alert,FLOAT,"3.33045, 4.440598393"
+lowAlerts.snooze,The duration a lowAlert is snoozed for in milliseconds,INT,"900000, 10800000"
+normal,The actual delivered amount of normal bolus insulin,FLOAT,"0, 3.38458"
+nutrition.carbohydrate.net,The carbohydrates entered in a healthkit food entry,FLOAT,49.61385
+nutrition.carbohydrate.units,The carbohydrate units used for a healthkit food entry,STRING,"grams, exchanges"
+outOfRangeAlerts.enabled,True/False whether outOfRange alerts are used for CGM,STRING,"TRUE, FALSE"
+outOfRangeAlerts.snooze,The duration a outOfRangeAlert is snoozed for in milliseconds,STRINGS,"900000, 10800000"
+percent,The temp basal rate's decimal percentage of the scheduled basal rate,FLOAT,"0.15, 2.5"
+primeTarget,The target of the primed insulin,STRING,"cannula, tubing"
+rate,The set basal rate,FLOAT,"0.2, 1.875"
+rateOfChangeAlerts.fallRate.enabled,True/False whether a high CGM rate of change alerts  are enabled on a device,STRING,"True, False"
+rateOfChangeAlerts.fallRate.rate,Rising CGM rate of change alerts threshold in mmol/L,FLOAT,0.16652244
+rateOfChangeAlerts.riseRate.enabled,True/False whether a low CGM rate of change alerts  are enabled on a device,STRING,"True, False"
+rateOfChangeAlerts.riseRate.rate,Falling CGM rate of change alerts threshold in mmol/L,FLOAT,-0.16652244
+reason.resumed,The reason insulin was resumed (either manually or automatically),STRING,"manual, automatic"
+reason.suspended,The reason insulin was suspended (either manually or automatically),STRING,"manual, automatic"
+recommended.carb,The amount of insulin (units) recommended to cover the carbInput,FLOAT,"0.07, 10.83"
+recommended.correction,The amount of insulin (units) recommended to correct the bgInput,FLOAT,"0.07, 10.84"
+recommended.net,"The net amount of insulin (units) recommended to be delivered after correcting for bgInput, carbInput, and the calculator's insulin on board",FLOAT,"0.07, 10.85"
+reportedIntensity,The reported intensity of a physical activity,STRING,"low, medium, high"
+scheduleName,The set basal schedule name,STRING,a553a79b
+states,The self-described physical state of the user,LIST,"[{'state': 'cycle'}], [{'state': 'illness'}], [{'state': 'stress'}], [{'state': 'hypoglycemiaSymptoms'}]"
+status,The status of the device set during a deviceEvent,STRING,"resumed, suspended"
+subType,A subtype of data different pump/cgm/bgm events,STRING,"timeChange, reservoirChange, dual/square, calibration"
+time,UTC timestamp in the format YYYY-MM-DDThh:mm:ss.sssZ,STRING,2017-05-24T14:15:06.000Z
+timeProcessing,Time processing information calculated during upload,STRING,"none, utc-bootstrapping, across-the-board-timezone"
+timezoneOffset,The timezone offset from UTC time in minutes,INT,"60, 420, -240"
+transmitterId,A unique identifier for each CGM transmitter,STRING,e584e1f5
+type,The type of data entry ,STRING,"smbg, cbg, bolus, basal, upload"
+units,The units used for an associated data type,STRING / DICT,"mmol/L, {'bg': 'mg/dL', 'carb': 'grams'}"
+units.bg,The blood glucose units used by the pump calculator,STRING,"mg/dL, mmol/L"
+units.carb,The carb units used by the pump calculator,STRING,"grams, exchanges"
+uploadId,A unique identifier for each upload event to Tidepool,STRING,"f74be3251fc3c25ac3a598bb8eff9cf9, upid_b58613b43ce5"
+value,"The blood glucose value (mmol/L) from cgm, calibrations, and smbg data",FLOAT,"2.2203, 20.8153"
+version,Tidepool uploader verison,STRING,"2.5.11, org.tidepool.blipnotes:2.0.3-501"
+volume,The volume of insulin (in units) delivered through a pump prime,FLOAT,"4.22, 10.9125"

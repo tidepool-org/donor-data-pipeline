@@ -13,11 +13,12 @@ license: BSD-2-Clause
 # %% load in required libraries
 import os
 from os.path import join, dirname, isfile
+from dotenv import load_dotenv
+
 
 # %% load environmental variables
 dotenv_path = join(dirname(__file__), '.env')
 if isfile(dotenv_path):
-    from dotenv import load_dotenv
     load_dotenv(dotenv_path)
 
 
